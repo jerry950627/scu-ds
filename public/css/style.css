@@ -1,0 +1,612 @@
+/* 粉紅色主題樣式 */
+body {
+    font-family: 'Noto Sans TC', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    line-height: 1.6;
+    margin: 0;
+    padding: 0;
+    background: linear-gradient(135deg, #fce4ec 0%, #f8bbd9 50%, #f48fb1 100%);
+    color: #4a148c;
+    min-height: 100vh;
+}
+
+.container {
+    width: 85%;
+    max-width: 1000px;
+    margin: auto;
+    overflow: visible;
+    padding: 0 40px;
+}
+
+
+/* 導覽列樣式 */
+.navbar {
+    background: linear-gradient(135deg, #e91e63 0%, #ad1457 100%) !important;
+    margin-bottom: 20px;
+    box-shadow: 0 4px 15px rgba(233, 30, 99, 0.3);
+}
+
+.navbar-brand {
+    color: #ffffff !important;
+    font-weight: bold;
+    font-size: 1.5rem;
+}
+
+.navbar-nav .nav-link {
+    color: #ffffff !important;
+    transition: all 0.3s ease;
+    border-radius: 20px;
+    margin: 0 5px;
+    padding: 8px 16px !important;
+}
+
+.navbar-nav .nav-link:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+    transform: translateY(-2px);
+}
+
+/* 卡片樣式 */
+.card {
+    margin-bottom: 25px;
+    border: none;
+    border-radius: 20px;
+    box-shadow: 0 8px 25px rgba(233, 30, 99, 0.15);
+    background: linear-gradient(135deg, #ffffff 0%, #fce4ec 100%);
+    transition: all 0.3s ease;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 15px 35px rgba(233, 30, 99, 0.25);
+}
+
+.card-header {
+    background: linear-gradient(135deg, #e91e63 0%, #ad1457 100%);
+    color: white;
+    border-radius: 20px 20px 0 0 !important;
+    border: none;
+    padding: 20px;
+    font-weight: bold;
+    font-size: 1.2rem;
+}
+
+.card-body {
+    padding: 25px;
+}
+
+/* 表單樣式 */
+form label {
+    display: block;
+    margin-bottom: 8px;
+    color: #4a148c;
+    font-weight: 600;
+}
+
+form input[type="text"],
+form input[type="password"],
+form input[type="email"],
+form input[type="number"],
+form input[type="date"],
+form textarea,
+form select {
+    width: 100%;
+    padding: 12px 16px;
+    margin-bottom: 15px;
+    border: 2px solid #f8bbd9;
+    border-radius: 15px;
+    box-sizing: border-box;
+    transition: all 0.3s ease;
+    background-color: #ffffff;
+    color: #4a148c;
+}
+
+form input:focus,
+form textarea:focus,
+form select:focus {
+    outline: none;
+    border-color: #e91e63;
+    box-shadow: 0 0 15px rgba(233, 30, 99, 0.2);
+    transform: translateY(-2px);
+}
+
+form textarea {
+    min-height: 120px;
+    resize: vertical;
+}
+
+/* 按鈕樣式 */
+.btn {
+    display: inline-block;
+    padding: 12px 25px;
+    border: none;
+    border-radius: 25px;
+    cursor: pointer;
+    text-decoration: none;
+    font-size: 16px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #e91e63 0%, #ad1457 100%);
+    color: white;
+    box-shadow: 0 4px 15px rgba(233, 30, 99, 0.3);
+}
+
+.btn-primary:hover {
+    background: linear-gradient(135deg, #ad1457 0%, #880e4f 100%);
+    transform: translateY(-3px);
+    box-shadow: 0 8px 25px rgba(233, 30, 99, 0.4);
+}
+
+.btn-success {
+    background: linear-gradient(135deg, #e91e63 0%, #c2185b 100%);
+    color: white;
+    box-shadow: 0 4px 15px rgba(233, 30, 99, 0.3);
+}
+
+.btn-success:hover {
+    background: linear-gradient(135deg, #c2185b 0%, #ad1457 100%);
+    transform: translateY(-3px);
+}
+
+.btn-danger {
+    background: linear-gradient(135deg, #f06292 0%, #e91e63 100%);
+    color: white;
+    box-shadow: 0 4px 15px rgba(240, 98, 146, 0.3);
+}
+
+.btn-danger:hover {
+    background: linear-gradient(135deg, #e91e63 0%, #c2185b 100%);
+    transform: translateY(-3px);
+}
+
+.btn-warning {
+    background: linear-gradient(135deg, #f8bbd9 0%, #f48fb1 100%);
+    color: #4a148c;
+    box-shadow: 0 4px 15px rgba(248, 187, 217, 0.3);
+}
+
+.btn-warning:hover {
+    background: linear-gradient(135deg, #f48fb1 0%, #f06292 100%);
+    color: white;
+    transform: translateY(-3px);
+}
+
+.btn-info {
+    background: linear-gradient(135deg, #f48fb1 0%, #e91e63 100%);
+    color: white;
+    box-shadow: 0 4px 15px rgba(244, 143, 177, 0.3);
+}
+
+.btn-info:hover {
+    background: linear-gradient(135deg, #e91e63 0%, #ad1457 100%);
+    transform: translateY(-3px);
+}
+
+.btn-light {
+    background: linear-gradient(135deg, #ffffff 0%, #fce4ec 100%);
+    color: #4a148c;
+    border: 2px solid #f8bbd9;
+    box-shadow: 0 4px 15px rgba(248, 187, 217, 0.2);
+}
+
+.btn-light:hover {
+    background: linear-gradient(135deg, #fce4ec 0%, #f8bbd9 100%);
+    transform: translateY(-3px);
+}
+
+.btn-dark {
+    background: linear-gradient(135deg, #4a148c 0%, #6a1b9a 100%);
+    color: white;
+    box-shadow: 0 4px 15px rgba(74, 20, 140, 0.3);
+}
+
+.btn-dark:hover {
+    background: linear-gradient(135deg, #6a1b9a 0%, #7b1fa2 100%);
+    transform: translateY(-3px);
+}
+
+.btn-sm {
+    padding: 8px 16px;
+    font-size: 14px;
+}
+
+.btn-lg {
+    padding: 16px 32px;
+    font-size: 18px;
+}
+
+/* 表格樣式 */
+.table {
+    width: 100%;
+    margin-bottom: 1rem;
+    color: #4a148c;
+    border-collapse: separate;
+    border-spacing: 0;
+}
+
+.table th,
+.table td {
+    padding: 15px;
+    vertical-align: middle;
+    border-top: 1px solid #f8bbd9;
+}
+
+.table thead th {
+    vertical-align: bottom;
+    border-bottom: 2px solid #f8bbd9;
+    background: linear-gradient(135deg, #f8bbd9 0%, #f48fb1 100%);
+    color: #4a148c;
+    font-weight: bold;
+}
+
+.table tbody tr:hover {
+    background-color: rgba(248, 187, 217, 0.1);
+}
+
+.table-striped tbody tr:nth-of-type(odd) {
+    background-color: rgba(248, 187, 217, 0.05);
+}
+
+.table-bordered {
+    border: 1px solid #f8bbd9;
+}
+
+.table-bordered th,
+.table-bordered td {
+    border: 1px solid #f8bbd9;
+}
+
+/* 警告提示樣式 */
+.alert {
+    padding: 15px 20px;
+    margin-bottom: 20px;
+    border: 1px solid transparent;
+    border-radius: 15px;
+}
+
+.alert-success {
+    color: #155724;
+    background-color: #d4edda;
+    border-color: #c3e6cb;
+}
+
+.alert-danger {
+    color: #721c24;
+    background-color: #f8d7da;
+    border-color: #f5c6cb;
+}
+
+.alert-warning {
+    color: #856404;
+    background-color: #fff3cd;
+    border-color: #ffeeba;
+}
+
+.alert-info {
+    color: #0c5460;
+    background-color: #d1ecf1;
+    border-color: #bee5eb;
+}
+
+/* 加載動畫 */
+.spinner {
+    width: 40px;
+    height: 40px;
+    margin: 100px auto;
+    background-color: #e91e63;
+    border-radius: 100%;
+    animation: sk-scaleout 1.0s infinite ease-in-out;
+}
+
+@keyframes sk-scaleout {
+    0% {
+        transform: scale(0);
+    }
+    100% {
+        transform: scale(1.0);
+        opacity: 0;
+    }
+}
+
+/* 頁腳樣式 */
+.footer {
+    background: linear-gradient(135deg, #ad1457 0%, #880e4f 100%);
+    color: white;
+    text-align: center;
+    padding: 20px 0;
+    margin-top: 50px;
+}
+
+/* 響應式設計 */
+@media (max-width: 768px) {
+    .container {
+        width: 95%;
+        padding: 0 10px;
+    }
+    
+    .card-header {
+        padding: 15px;
+    }
+    
+    .card-body {
+        padding: 15px;
+    }
+    
+    .btn {
+        padding: 10px 20px;
+    }
+    
+    .table th,
+    .table td {
+        padding: 10px;
+    }
+}
+
+/* 登入頁面特定樣式 */
+.login-container {
+    max-width: 400px;
+    margin: 100px auto;
+    padding: 30px;
+    background: white;
+    border-radius: 20px;
+    box-shadow: 0 10px 30px rgba(233, 30, 99, 0.2);
+}
+
+.login-logo {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.login-logo img {
+    max-width: 150px;
+}
+
+/* 儀表板特定樣式 */
+.dashboard-stats {
+    display: flex;
+    flex-wrap: wrap;
+    margin: 0 -15px;
+}
+
+.stat-card {
+    flex: 1;
+    min-width: 200px;
+    margin: 15px;
+    padding: 20px;
+    border-radius: 15px;
+    background: white;
+    box-shadow: 0 5px 20px rgba(233, 30, 99, 0.1);
+    text-align: center;
+}
+
+.stat-card h3 {
+    margin-top: 0;
+    color: #e91e63;
+}
+
+.stat-card p {
+    font-size: 2rem;
+    font-weight: bold;
+    margin: 10px 0;
+    color: #4a148c;
+}
+
+/* 自定義滾動條 */
+::-webkit-scrollbar {
+    width: 10px;
+}
+
+::-webkit-scrollbar-track {
+    background: #fce4ec;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #f48fb1;
+    border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #e91e63;
+}
+
+/*選單*/
+
+.menu-toggle {
+    font-size: 24px;
+    background-color: transparent;
+    border: none;
+    color: white;
+    padding: 10px 15px;
+    cursor: pointer;
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    z-index: 1050;
+  }
+  
+  .menu-toggle:hover {
+    opacity: 0.8;
+  }
+  
+  /* ... existing code ... */
+
+/* 訊息提示樣式優化 */
+.alert {
+    border-radius: 15px;
+    border: none;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    margin-bottom: 15px;
+    animation: slideInDown 0.3s ease-out;
+}
+
+.alert-success {
+    background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+    color: #155724;
+    border-left: 4px solid #28a745;
+}
+
+.alert-danger {
+    background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%);
+    color: #721c24;
+    border-left: 4px solid #dc3545;
+}
+
+.alert-warning {
+    background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
+    color: #856404;
+    border-left: 4px solid #ffc107;
+}
+
+.alert-info {
+    background: linear-gradient(135deg, #d1ecf1 0%, #bee5eb 100%);
+    color: #0c5460;
+    border-left: 4px solid #17a2b8;
+}
+
+.alert i {
+    font-size: 1.1em;
+    margin-right: 8px;
+}
+
+.alert .btn-close {
+    padding: 0.5rem;
+    margin: -0.25rem -0.5rem -0.25rem auto;
+}
+
+@keyframes slideInDown {
+    from {
+        transform: translateY(-20px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+/* 進度條樣式優化 */
+.progress {
+    height: 8px;
+    border-radius: 10px;
+    background-color: #f8bbd9;
+    overflow: hidden;
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.progress-bar {
+    background: linear-gradient(135deg, #e91e63 0%, #ad1457 100%);
+    border-radius: 10px;
+    transition: width 0.3s ease;
+    font-size: 12px;
+    line-height: 8px;
+    color: white;
+    text-align: center;
+}
+
+/* 表格樣式優化 */
+.table {
+    border-radius: 15px;
+    overflow: hidden;
+    box-shadow: 0 4px 15px rgba(233, 30, 99, 0.1);
+}
+
+.table thead th {
+    background: linear-gradient(135deg, #e91e63 0%, #ad1457 100%);
+    color: white;
+    border: none;
+    font-weight: 600;
+    text-align: center;
+    padding: 15px;
+}
+
+.table tbody td {
+    vertical-align: middle;
+    padding: 12px 15px;
+    border-color: #f8bbd9;
+}
+
+.table tbody tr:hover {
+    background-color: rgba(233, 30, 99, 0.05);
+    transform: translateY(-1px);
+    transition: all 0.2s ease;
+}
+
+/* 按鈕組樣式 */
+.btn-group .btn {
+    margin-right: 5px;
+}
+
+.btn-group .btn:last-child {
+    margin-right: 0;
+}
+
+/* 文件上傳區域樣式 */
+.form-control[type="file"] {
+    border: 2px dashed #f8bbd9;
+    background-color: #fce4ec;
+    padding: 20px;
+    text-align: center;
+    transition: all 0.3s ease;
+}
+
+.form-control[type="file"]:hover {
+    border-color: #e91e63;
+    background-color: #f8bbd9;
+}
+
+.form-control[type="file"]:focus {
+    border-color: #e91e63;
+    box-shadow: 0 0 15px rgba(233, 30, 99, 0.3);
+}
+
+/* 列表項目樣式 */
+.list-group-item {
+    border: 1px solid #f8bbd9;
+    border-radius: 10px;
+    margin-bottom: 5px;
+    transition: all 0.2s ease;
+}
+
+.list-group-item:hover {
+    background-color: #fce4ec;
+    transform: translateX(5px);
+}
+
+.list-group-item a {
+    color: #e91e63;
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.list-group-item a:hover {
+    color: #ad1457;
+    text-decoration: underline;
+}
+
+/* 響應式設計 */
+@media (max-width: 768px) {
+    .container {
+        padding: 0 20px;
+    }
+    
+    .card-body {
+        padding: 15px;
+    }
+    
+    .btn {
+        padding: 8px 16px;
+        font-size: 14px;
+    }
+    
+    .table {
+        font-size: 14px;
+    }
+    
+    .alert {
+        font-size: 14px;
+        padding: 10px 15px;
+    }
+}

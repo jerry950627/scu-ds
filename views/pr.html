@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>公關部管理 - 東吳資科系學會</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+  <link href="/css/style.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    .upload-section {
+      background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+      border-radius: 15px;
+      padding: 25px;
+      margin-bottom: 20px;
+      color: white;
+    }
+    .vendor-list-section {
+      background: #f8f9fa;
+      border-radius: 15px;
+      padding: 20px;
+      margin-top: 20px;
+    }
+    .section-divider {
+      margin: 40px 0;
+      border: none;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, #ddd, transparent);
+    }
+    .file-preview {
+      max-width: 200px;
+      max-height: 200px;
+      border-radius: 8px;
+    }
+    .loading-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(255, 255, 255, 0.9);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 9999;
+    }
+    .loading-spinner {
+      width: 50px;
+      height: 50px;
+      border: 5px solid #f3f3f3;
+      border-top: 5px solid #f5576c;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    .loading-text {
+      margin-top: 15px;
+      font-size: 18px;
+      color: #f5576c;
+    }
+  </style>
+</head>
+
+<body>
+  <!-- 加載指示器 -->
+  <div id="loading" class="loading-overlay">
+    <div class="loading-spinner"></div>
+    <div class="loading-text">載入中...</div>
+  </div>
+
+  <div class="container py-5">
+    <div class="d-flex justify-content-center flex-wrap gap-3 mb-4">
+      <a href="/dashboard" class="btn btn-light">🏠 首頁</a>
+      <a href="/design" class="btn btn-info">美宣部</a>
+      <a href="/activity" class="btn btn-info">活動部</a>
+      <a href="/secretary" class="btn btn-info">文書部</a>
+      <a href="/finance" class="btn btn-info">財務部</a>
+      <a href="/history" class="btn btn-info">歷史資料</a>
+      <a href="/admin" class="btn btn-dark">系統管理</a>
+      <button class="btn btn-success" onclick="exportPRData()">📤 匯出數據</button>
+    </div>
+    <h1 class="text-center mb-4"><i class="bi bi-people-fill"></i> 公關部廠商管理</h1>
+
+    <!-- 廠商統計圖表 -->
+    <div class="card mb-4">
+      <div class="card-header bg-gradient" style="background: linear-gradient(90deg, #ffb6c1, #ffc0cb);">
+        <i class="bi bi-pie-chart-fill"></i> 合作狀態統計圖
+      </div>
+      <div class="card-body d-flex justify-content-center align-items-center p-4" style="height: 300px;">
+        <canvas id="vendorChart" style="max-width: 100%; height: 300px;"></canvas>
+      </div>
+    </div>
+
+    <!-- 廠商新增表單 -->
+    <div class="upload-section">
+      <h3 class="mb-4"><i class="bi bi-building"></i> 新增或編輯廠商資料</h3>
+      <form id="vendorForm">
+        <input type="hidden" id="vendorIndex">
+        <div class="row">
+          <div class="col-md-6">
+            <div class="mb-3">
+              <label for="vendorName" class="form-label">廠商名稱 <span class="text-danger">*</span></label>
+              <input type="text" class="form-control" id="vendorName" required>
+            </div>
+            <div class="mb-3">
+              <label for="vendorEmail" class="form-label">電子郵件 <span class="text-danger">*</span></label>
+              <input type="email" class="form-control" id="vendorEmail" required>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="mb-3">
+              <label for="vendorProduct" class="form-label">商品類型 <span class="text-danger">*</span></label>
+              <input type="text" class="form-control" id="vendorProduct" required>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">合作狀態 <span class="text-danger">*</span></label>
+              <select class="form-select" id="vendorStatus" required>
+                <option value="合作過">已合作</option>
+                <option value="未合作">未合作</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <button type="submit" class="btn btn-light btn-lg">
+          <i class="bi bi-save"></i> 儲存廠商資料
+        </button>
+      </form>
+    </div>
+
+    <!-- 分隔線 -->
+    <div class="section-divider"></div>
+    
+    <!-- 廠商清單 -->
+    <div class="vendor-list-section">
+      <h3 class="mb-4"><i class="bi bi-list-check"></i> 廠商清單</h3>
+      <div class="d-flex justify-content-center flex-wrap gap-3 mb-4">
+        <button id="exportBtn" class="btn btn-success"><i class="bi bi-file-earmark-excel"></i> 匯出數據</button>
+        <button id="filterCooperatedBtn" class="btn btn-primary"><i class="bi bi-funnel"></i> 已合作廠商</button>
+        <button id="filterNotCooperatedBtn" class="btn btn-warning"><i class="bi bi-funnel"></i> 未合作廠商</button>
+        <button id="showAllBtn" class="btn btn-info"><i class="bi bi-arrow-repeat"></i> 顯示全部</button>
+      </div>
+      <div class="table-responsive">
+        <table id="vendorTable" class="table table-striped table-hover">
+          <thead class="table-light">
+            <tr>
+              <th>廠商名稱</th>
+              <th>電子郵件</th>
+              <th>商品類別</th>
+              <th>合作狀態</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            <!-- 資料將由 JavaScript 動態填入 -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    東吳大學資料科學系學會 &copy; 2025
+  </footer>
+
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script>
+    // 所有功能已移至 pr.js 統一處理
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="/js/globalErrorHandler.js"></script>
+  <script src="/js/common.js"></script>
+  <script src="/js/pr.js"></script>
+</body>
+
+</html>

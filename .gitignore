@@ -1,0 +1,122 @@
+# 依賴套件
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# 環境變數檔案
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# 資料庫檔案
+*.db
+*.sqlite
+*.sqlite3
+database/*.db
+
+# 日誌檔案
+logs/
+*.log
+
+# 上傳檔案
+public/uploads/*
+!public/uploads/.gitkeep
+
+# 作業系統產生的檔案
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# IDE 設定檔案
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# 臨時檔案
+tmp/
+temp/
+*.tmp
+*.temp
+
+# 測試覆蓋率報告
+coverage/
+.nyc_output/
+
+# 快取檔案
+.cache/
+.parcel-cache/
+
+# 建置輸出
+dist/
+build/
+
+# 安全相關檔案
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+
+# 備份檔案
+*.backup
+*.bak
+*.old
+
+# 壓縮檔案
+*.zip
+*.tar.gz
+*.rar
+*.7z
+
+# 系統檔案
+*.pid
+*.seed
+*.pid.lock
+
+# 運行時檔案
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# 文檔生成
+docs/
+
+# ESLint 快取
+.eslintcache
+
+# Prettier 快取
+.prettiercache
+
+# TypeScript 快取
+*.tsbuildinfo
+
+# Optional npm cache directory
+.npm
+
+# Optional eslint cache
+.eslintcache
+
+# Microbundle cache
+.rpt2_cache/
+.rts2_cache_cjs/
+.rts2_cache_es/
+.rts2_cache_umd/
+
+# Optional REPL history
+.node_repl_history
+
+# Output of 'npm pack'
+*.tgz
+
+# Yarn Integrity file
+.yarn-integrity
