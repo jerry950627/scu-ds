@@ -6,22 +6,21 @@
 const express = require('express');
 const router = express.Router();
 const PrController = require('../controllers/prController');
-const { requireAuth, requireRole } = require('../middleware/auth');
+const { requireRole, logActivity, preventDuplicateSubmission } = require('../middleware/auth');
 const { validateId, validatePagination, validateDateRange } = require('../middleware/validation');
 const { singleUpload, multipleUpload } = require('../utils/uploadConfig');
-
-// 所有公關部路由都需要認證
-router.use(requireAuth);
 
 // 公關活動管理
 // 獲取公關活動列表
 router.get('/activities', 
+    requireRole(['admin', 'pr', 'secretary']),
     validatePagination,
     PrController.getPrActivities
 );
 
 // 獲取單個公關活動詳情
 router.get('/activities/:id', 
+    requireRole(['admin', 'pr', 'secretary']),
     validateId,
     PrController.getPrActivity
 );
@@ -30,6 +29,8 @@ router.get('/activities/:id',
 router.post('/activities', 
     requireRole(['admin', 'pr']),
     singleUpload('IMAGE', 'image'),
+    logActivity('創建公關活動'),
+    preventDuplicateSubmission,
     PrController.createPrActivity
 );
 
@@ -38,6 +39,7 @@ router.put('/activities/:id',
     requireRole(['admin', 'pr']),
     validateId,
     singleUpload('IMAGE', 'image'),
+    logActivity('更新公關活動'),
     PrController.updatePrActivity
 );
 
@@ -45,6 +47,7 @@ router.put('/activities/:id',
 router.delete('/activities/:id', 
     requireRole(['admin', 'pr']),
     validateId,
+    logActivity('刪除公關活動'),
     PrController.deletePrActivity
 );
 
@@ -52,6 +55,7 @@ router.delete('/activities/:id',
 router.post('/activities/:id/publish', 
     requireRole(['admin', 'pr']),
     validateId,
+    logActivity('發布公關活動'),
     PrController.publishPrActivity
 );
 
@@ -403,6 +407,39 @@ router.get('/export/partners',
 router.post('/reports/generate', 
     requireRole(['admin', 'pr']),
     PrController.generatePrReport
+);
+
+// 廠商管理
+// 獲取廠商列表
+router.get('/vendors', 
+    validatePagination,
+    PrController.getVendors
+);
+
+// 獲取單個廠商詳情
+router.get('/vendors/:id', 
+    validateId,
+    PrController.getVendor
+);
+
+// 創建新廠商
+router.post('/vendors', 
+    requireRole(['admin', 'pr']),
+    PrController.createVendor
+);
+
+// 更新廠商
+router.put('/vendors/:id', 
+    requireRole(['admin', 'pr']),
+    validateId,
+    PrController.updateVendor
+);
+
+// 刪除廠商
+router.delete('/vendors/:id', 
+    requireRole(['admin', 'pr']),
+    validateId,
+    PrController.deleteVendor
 );
 
 module.exports = router;

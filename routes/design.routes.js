@@ -6,22 +6,21 @@
 const express = require('express');
 const router = express.Router();
 const DesignController = require('../controllers/designController');
-const { requireAuth, requireRole } = require('../middleware/auth');
+const { requireRole, logActivity, preventDuplicateSubmission } = require('../middleware/auth');
 const { validateDesign, validateId, validatePagination, validateDateRange } = require('../middleware/validation');
 const { singleUpload, multipleUpload } = require('../utils/uploadConfig');
-
-// 所有設計部路由都需要認證
-router.use(requireAuth);
 
 // 設計作品管理
 // 獲取設計作品列表
 router.get('/works', 
+    requireRole(['admin', 'design', 'secretary']),
     validatePagination,
     DesignController.getDesignWorks
 );
 
 // 獲取單個設計作品詳情
 router.get('/works/:id', 
+    requireRole(['admin', 'design', 'secretary']),
     validateId,
     DesignController.getDesignWork
 );
@@ -31,6 +30,8 @@ router.post('/works',
     requireRole(['admin', 'design']),
     singleUpload('IMAGE', 'image'),
     validateDesign,
+    logActivity('創建設計作品'),
+    preventDuplicateSubmission,
     DesignController.createDesignWork
 );
 
@@ -40,6 +41,7 @@ router.put('/works/:id',
     validateId,
     singleUpload('IMAGE', 'image'),
     validateDesign,
+    logActivity('更新設計作品'),
     DesignController.updateDesignWork
 );
 
@@ -47,6 +49,7 @@ router.put('/works/:id',
 router.delete('/works/:id', 
     requireRole(['admin', 'design']),
     validateId,
+    logActivity('刪除設計作品'),
     DesignController.deleteDesignWork
 );
 
@@ -54,6 +57,7 @@ router.delete('/works/:id',
 router.post('/works/batch', 
     requireRole(['admin', 'design']),
     multipleUpload('IMAGE', 'images', 10),
+    logActivity('批量上傳設計作品'),
     DesignController.batchUploadWorks
 );
 

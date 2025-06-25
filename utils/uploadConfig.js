@@ -3,8 +3,8 @@ const path = require('path');
 const fs = require('fs');
 
 /**
- * 統一的檔案上傳配置
- * 解決多處定義不同 multer 配置的問題
+ * 簡化的檔案上傳配置
+ * 只支援 PDF、PNG、JPG 格式
  */
 class UploadConfig {
   /**
@@ -16,17 +16,11 @@ class UploadConfig {
   static createUpload(department = 'general', options = {}) {
     const {
       fileSize = 10 * 1024 * 1024, // 預設 10MB
-      allowedTypes = /jpeg|jpg|png|gif|pdf|doc|docx|xls|xlsx|txt/,
+      allowedTypes = /jpeg|jpg|png|pdf/,
       allowedMimeTypes = [
-        'image/jpeg', 'image/jpg', 'image/png', 'image/gif',
-        'application/pdf',
-        'application/msword',
-        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-        'application/vnd.ms-excel',
-        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        'text/plain'
-      ],
-      customMimeTypes = []
+        'image/jpeg', 'image/jpg', 'image/png',
+        'application/pdf'
+      ]
     } = options;
 
     const storage = multer.diskStorage({
@@ -51,9 +45,7 @@ class UploadConfig {
       },
       fileFilter: function (req, file, cb) {
         const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
-        const allMimeTypes = [...allowedMimeTypes, ...customMimeTypes];
-        const mimetypeValid = allMimeTypes.includes(file.mimetype) || 
-                             file.mimetype.startsWith('image/');
+        const mimetypeValid = allowedMimeTypes.includes(file.mimetype);
 
         if (mimetypeValid && extname) {
           return cb(null, true);
@@ -63,7 +55,7 @@ class UploadConfig {
             mimetype: file.mimetype,
             extname: path.extname(file.originalname).toLowerCase()
           });
-          cb(new Error(`不支援的檔案格式。您上傳的檔案類型：${file.mimetype}`));
+          cb(new Error(`只支援 PDF、PNG、JPG 格式。您上傳的檔案類型：${file.mimetype}`));
         }
       }
     });
@@ -71,20 +63,9 @@ class UploadConfig {
 
   /**
    * 設計部門專用的檔案上傳配置
-   * 支援更多設計相關檔案格式
    */
   static createDesignUpload() {
-    return this.createUpload('design', {
-      allowedTypes: /jpeg|jpg|png|gif|svg|pdf|ai|psd|doc|docx/,
-      allowedMimeTypes: [
-        'image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/svg+xml',
-        'application/pdf',
-        'application/postscript', // .ai files
-        'image/vnd.adobe.photoshop', // .psd files
-        'application/msword',
-        'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-      ]
-    });
+    return this.createUpload('design');
   }
 
   /**
@@ -93,8 +74,8 @@ class UploadConfig {
   static createUserPhotoUpload() {
     return this.createUpload('users', {
       fileSize: 5 * 1024 * 1024, // 5MB 限制
-      allowedTypes: /jpeg|jpg|png|gif/,
-      allowedMimeTypes: ['image/jpeg', 'image/jpg', 'image/png', 'image/gif']
+      allowedTypes: /jpeg|jpg|png/,
+      allowedMimeTypes: ['image/jpeg', 'image/jpg', 'image/png']
     });
   }
 }

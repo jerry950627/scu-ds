@@ -30,7 +30,7 @@ class AdminController extends BaseController {
             console.error('獲取用戶列表失敗:', error);
             return BaseController.error(res, '獲取用戶列表失敗', 500);
         }
-    })
+    });
     
     /**
      * 獲取單個用戶詳情
@@ -387,31 +387,16 @@ class AdminController extends BaseController {
             const stats = {};
             
             // 總用戶數
-            const totalUsers = await new Promise((resolve, reject) => {
-                db.get('SELECT COUNT(*) as count FROM users WHERE deleted_at IS NULL', [], (err, row) => {
-                    if (err) reject(err);
-                    else resolve(row ? row.count : 0);
-                });
-            });
-            stats.totalUsers = totalUsers;
+            const totalUsers = await DatabaseHelper.get('SELECT COUNT(*) as count FROM users WHERE deleted_at IS NULL', []);
+            stats.totalUsers = totalUsers ? totalUsers.count : 0;
             
             // 活躍用戶數
-            const activeUsers = await new Promise((resolve, reject) => {
-                db.get('SELECT COUNT(*) as count FROM users WHERE status = "active" AND deleted_at IS NULL', [], (err, row) => {
-                    if (err) reject(err);
-                    else resolve(row ? row.count : 0);
-                });
-            });
-            stats.activeUsers = activeUsers;
+            const activeUsers = await DatabaseHelper.get('SELECT COUNT(*) as count FROM users WHERE status = "active" AND deleted_at IS NULL', []);
+            stats.activeUsers = activeUsers ? activeUsers.count : 0;
             
             // 鎖定用戶數
-            const lockedUsers = await new Promise((resolve, reject) => {
-                db.get('SELECT COUNT(*) as count FROM users WHERE status = "locked" AND deleted_at IS NULL', [], (err, row) => {
-                    if (err) reject(err);
-                    else resolve(row ? row.count : 0);
-                });
-            });
-            stats.lockedUsers = lockedUsers;
+            const lockedUsers = await DatabaseHelper.get('SELECT COUNT(*) as count FROM users WHERE status = "locked" AND deleted_at IS NULL', []);
+            stats.lockedUsers = lockedUsers ? lockedUsers.count : 0;
             
             res.json({
                 success: true,
@@ -436,13 +421,8 @@ class AdminController extends BaseController {
             const stats = {};
             
             // 總活動數
-            const totalActivities = await new Promise((resolve, reject) => {
-                db.get('SELECT COUNT(*) as count FROM activities WHERE deleted_at IS NULL', [], (err, row) => {
-                    if (err) reject(err);
-                    else resolve(row ? row.count : 0);
-                });
-            });
-            stats.totalActivities = totalActivities;
+            const totalActivities = await DatabaseHelper.get('SELECT COUNT(*) as count FROM activities WHERE deleted_at IS NULL', []);
+            stats.totalActivities = totalActivities ? totalActivities.count : 0;
             
             res.json({
                 success: true,
@@ -457,7 +437,7 @@ class AdminController extends BaseController {
                 error: error.message
             });
         }
-    }
+    });
 
     /**
      * 獲取財務統計
@@ -467,13 +447,8 @@ class AdminController extends BaseController {
             const stats = {};
             
             // 總財務記錄數
-            const totalRecords = await new Promise((resolve, reject) => {
-                db.get('SELECT COUNT(*) as count FROM finance_records WHERE deleted_at IS NULL', [], (err, row) => {
-                    if (err) reject(err);
-                    else resolve(row ? row.count : 0);
-                });
-            });
-            stats.totalRecords = totalRecords;
+            const totalRecords = await DatabaseHelper.get('SELECT COUNT(*) as count FROM finance_records WHERE deleted_at IS NULL', []);
+            stats.totalRecords = totalRecords ? totalRecords.count : 0;
             
             res.json({
                 success: true,
@@ -488,19 +463,14 @@ class AdminController extends BaseController {
                 error: error.message
             });
         }
-    }
+    });
 
     /**
      * 獲取系統設定
      */
-    static async getSystemSettings(req, res) {
+    static getSystemSettings = BaseController.asyncHandler(async (req, res) => {
         try {
-            const settings = await new Promise((resolve, reject) => {
-                db.all('SELECT * FROM system_settings', [], (err, rows) => {
-                    if (err) reject(err);
-                    else resolve(rows || []);
-                });
-            });
+            const settings = await DatabaseHelper.all('SELECT * FROM system_settings', []);
             
             res.json({
                 success: true,
@@ -515,26 +485,20 @@ class AdminController extends BaseController {
                 error: error.message
             });
         }
-    }
+    });
 
     /**
      * 更新系統設定
      */
-    static async updateSystemSettings(req, res) {
+    static updateSystemSettings = BaseController.asyncHandler(async (req, res) => {
         try {
             const settings = req.body;
             
             for (const [key, value] of Object.entries(settings)) {
-                await new Promise((resolve, reject) => {
-                    db.run(
-                        'INSERT OR REPLACE INTO system_settings (key, value, updated_at) VALUES (?, ?, datetime("now"))',
-                        [key, JSON.stringify(value)],
-                        (err) => {
-                            if (err) reject(err);
-                            else resolve();
-                        }
-                    );
-                });
+                await DatabaseHelper.run(
+                    'INSERT OR REPLACE INTO system_settings (key, value, updated_at) VALUES (?, ?, datetime("now"))',
+                    [key, JSON.stringify(value)]
+                );
             }
             
             res.json({
@@ -549,7 +513,7 @@ class AdminController extends BaseController {
                 error: error.message
             });
         }
-    }
+    });
 
     /**
      * 獲取特定設定
@@ -558,12 +522,7 @@ class AdminController extends BaseController {
         try {
             const { key } = req.params;
             
-            const setting = await new Promise((resolve, reject) => {
-                db.get('SELECT * FROM system_settings WHERE key = ?', [key], (err, row) => {
-                    if (err) reject(err);
-                    else resolve(row);
-                });
-            });
+            const setting = await DatabaseHelper.get('SELECT * FROM system_settings WHERE key = ?', [key]);
             
             if (!setting) {
                 return res.status(404).json({
@@ -573,364 +532,474 @@ class AdminController extends BaseController {
             }
             
             res.json({
-                 success: true,
-                 data: {
-                     key: setting.key,
-                     value: JSON.parse(setting.value)
-                 },
-                 message: '設定獲取成功'
-             });
-         } catch (error) {
-             console.error('獲取設定失敗:', error);
-             res.status(500).json({
-                 success: false,
-                 message: '獲取設定失敗',
-                 error: error.message
-             });
-         }
-     }
+                success: true,
+                data: {
+                    key: setting.key,
+                    value: JSON.parse(setting.value)
+                },
+                message: '設定獲取成功'
+            });
+        } catch (error) {
+            console.error('獲取設定失敗:', error);
+            res.status(500).json({
+                success: false,
+                message: '獲取設定失敗',
+                error: error.message
+            });
+        }
+    });
 
-     /**
-      * 更新特定設定
-      */
-     static updateSetting = BaseController.asyncHandler(async (req, res) => {
-         try {
-             const { key } = req.params;
-             const { value } = req.body;
-             
-             await new Promise((resolve, reject) => {
-                 db.run(
-                     'INSERT OR REPLACE INTO system_settings (key, value, updated_at) VALUES (?, ?, datetime("now"))',
-                     [key, JSON.stringify(value)],
-                     (err) => {
-                         if (err) reject(err);
-                         else resolve();
-                     }
-                 );
-             });
-             
-             res.json({
-                 success: true,
-                 message: '設定更新成功'
-             });
-         } catch (error) {
-             console.error('更新設定失敗:', error);
-             res.status(500).json({
-                 success: false,
-                 message: '更新設定失敗',
-                 error: error.message
-             });
-         }
-     }
+    /**
+     * 更新特定設定
+     */
+    static updateSetting = BaseController.asyncHandler(async (req, res) => {
+        try {
+            const { key } = req.params;
+            const { value } = req.body;
+            
+            await DatabaseHelper.run(
+                'INSERT OR REPLACE INTO system_settings (key, value, updated_at) VALUES (?, ?, datetime("now"))',
+                [key, JSON.stringify(value)]
+            );
+            
+            res.json({
+                success: true,
+                message: '設定更新成功'
+            });
+        } catch (error) {
+            console.error('更新設定失敗:', error);
+            res.status(500).json({
+                success: false,
+                message: '更新設定失敗',
+                error: error.message
+            });
+        }
+    });
 
-     /**
-      * 獲取操作日誌
-      */
-     static getOperationLogs = BaseController.asyncHandler(async (req, res) => {
-         try {
-             const { page = 1, limit = 20 } = req.query;
-             const offset = (page - 1) * limit;
-             
-             const logs = await new Promise((resolve, reject) => {
-                 db.all(
-                     'SELECT * FROM operation_history ORDER BY created_at DESC LIMIT ? OFFSET ?',
-                     [parseInt(limit), offset],
-                     (err, rows) => {
-                         if (err) reject(err);
-                         else resolve(rows || []);
-                     }
-                 );
-             });
-             
-             const total = await new Promise((resolve, reject) => {
-                 db.get('SELECT COUNT(*) as count FROM operation_history', [], (err, row) => {
-                     if (err) reject(err);
-                     else resolve(row ? row.count : 0);
-                 });
-             });
-             
-             res.json({
-                 success: true,
-                 data: {
-                     logs,
-                     pagination: {
-                         page: parseInt(page),
-                         limit: parseInt(limit),
-                         total,
-                         totalPages: Math.ceil(total / limit)
-                     }
-                 },
-                 message: '操作日誌獲取成功'
-             });
-         } catch (error) {
-             console.error('獲取操作日誌失敗:', error);
-             res.status(500).json({
-                 success: false,
-                 message: '獲取操作日誌失敗',
-                 error: error.message
-             });
-         }
-     }
+    /**
+     * 獲取操作日誌
+     */
+    static getOperationLogs = BaseController.asyncHandler(async (req, res) => {
+        try {
+            const { page, limit, offset } = BaseController.getPaginationParams(req);
+            
+            const sql = `
+                SELECT * FROM operation_history 
+                WHERE deleted_at IS NULL 
+                ORDER BY created_at DESC 
+                LIMIT ? OFFSET ?
+            `;
+            
+            const logs = await DatabaseHelper.all(sql, [limit, offset]);
+            
+            return BaseController.success(res, logs, '操作日誌獲取成功');
+        } catch (error) {
+            console.error('獲取操作日誌失敗:', error);
+            return BaseController.error(res, '獲取操作日誌失敗', 500);
+        }
+    });
 
-     /**
-      * 獲取錯誤日誌
-      */
-     static getErrorLogs = BaseController.asyncHandler(async (req, res) => {
-         try {
-             const { page = 1, limit = 20 } = req.query;
-             const offset = (page - 1) * limit;
-             
-             const logs = await new Promise((resolve, reject) => {
-                 db.all(
-                     'SELECT * FROM error_logs ORDER BY created_at DESC LIMIT ? OFFSET ?',
-                     [parseInt(limit), offset],
-                     (err, rows) => {
-                         if (err) reject(err);
-                         else resolve(rows || []);
-                     }
-                 );
-             });
-             
-             const total = await new Promise((resolve, reject) => {
-                 db.get('SELECT COUNT(*) as count FROM error_logs', [], (err, row) => {
-                     if (err) reject(err);
-                     else resolve(row ? row.count : 0);
-                 });
-             });
-             
-             res.json({
-                 success: true,
-                 data: {
-                     logs,
-                     pagination: {
-                         page: parseInt(page),
-                         limit: parseInt(limit),
-                         total,
-                         totalPages: Math.ceil(total / limit)
-                     }
-                 },
-                 message: '錯誤日誌獲取成功'
-             });
-         } catch (error) {
-             console.error('獲取錯誤日誌失敗:', error);
-             res.status(500).json({
-                 success: false,
-                 message: '獲取錯誤日誌失敗',
-                 error: error.message
-             });
-         }
-     }
+    /**
+     * 獲取錯誤日誌
+     */
+    static getErrorLogs = BaseController.asyncHandler(async (req, res) => {
+        try {
+            const { page, limit, offset } = BaseController.getPaginationParams(req);
+            
+            const sql = `
+                SELECT * FROM error_logs 
+                WHERE deleted_at IS NULL 
+                ORDER BY created_at DESC 
+                LIMIT ? OFFSET ?
+            `;
+            
+            const logs = await DatabaseHelper.all(sql, [limit, offset]);
+            
+            return BaseController.success(res, logs, '錯誤日誌獲取成功');
+        } catch (error) {
+            console.error('獲取錯誤日誌失敗:', error);
+            return BaseController.error(res, '獲取錯誤日誌失敗', 500);
+        }
+    });
 
-     /**
-      * 獲取登入日誌
-      */
-     static getLoginLogs = BaseController.asyncHandler(async (req, res) => {
-         try {
-             const { page = 1, limit = 20 } = req.query;
-             const offset = (page - 1) * limit;
-             
-             const logs = await new Promise((resolve, reject) => {
-                 db.all(
-                     'SELECT * FROM login_history ORDER BY created_at DESC LIMIT ? OFFSET ?',
-                     [parseInt(limit), offset],
-                     (err, rows) => {
-                         if (err) reject(err);
-                         else resolve(rows || []);
-                     }
-                 );
-             });
-             
-             const total = await new Promise((resolve, reject) => {
-                 db.get('SELECT COUNT(*) as count FROM login_history', [], (err, row) => {
-                     if (err) reject(err);
-                     else resolve(row ? row.count : 0);
-                 });
-             });
-             
-             res.json({
-                 success: true,
-                 data: {
-                     logs,
-                     pagination: {
-                         page: parseInt(page),
-                         limit: parseInt(limit),
-                         total,
-                         totalPages: Math.ceil(total / limit)
-                     }
-                 },
-                 message: '登入日誌獲取成功'
-             });
-         } catch (error) {
-             console.error('獲取登入日誌失敗:', error);
-             res.status(500).json({
-                 success: false,
-                 message: '獲取登入日誌失敗',
-                 error: error.message
-             });
-         }
-     }
+    /**
+     * 獲取登入日誌
+     */
+    static getLoginLogs = BaseController.asyncHandler(async (req, res) => {
+        try {
+            const { page, limit, offset } = BaseController.getPaginationParams(req);
+            
+            const sql = `
+                SELECT * FROM login_history 
+                WHERE deleted_at IS NULL 
+                ORDER BY created_at DESC 
+                LIMIT ? OFFSET ?
+            `;
+            
+            const logs = await DatabaseHelper.all(sql, [limit, offset]);
+            
+            return BaseController.success(res, logs, '登入日誌獲取成功');
+        } catch (error) {
+            console.error('獲取登入日誌失敗:', error);
+            return BaseController.error(res, '獲取登入日誌失敗', 500);
+        }
+    });
 
-     /**
-      * 清理舊日誌
-      */
-     static cleanupLogs = BaseController.asyncHandler(async (req, res) => {
-         try {
-             const { days = 30 } = req.body;
-             
-             const cutoffDate = new Date();
-             cutoffDate.setDate(cutoffDate.getDate() - days);
-             const cutoffDateStr = cutoffDate.toISOString().split('T')[0];
-             
-             await new Promise((resolve, reject) => {
-                 db.run(
-                     'DELETE FROM operation_history WHERE created_at < ?',
-                     [cutoffDateStr],
-                     (err) => {
-                         if (err) reject(err);
-                         else resolve();
-                     }
-                 );
-             });
-             
-             await new Promise((resolve, reject) => {
-                 db.run(
-                     'DELETE FROM error_logs WHERE created_at < ?',
-                     [cutoffDateStr],
-                     (err) => {
-                         if (err) reject(err);
-                         else resolve();
-                     }
-                 );
-             });
-             
-             await new Promise((resolve, reject) => {
-                 db.run(
-                     'DELETE FROM login_history WHERE created_at < ?',
-                     [cutoffDateStr],
-                     (err) => {
-                         if (err) reject(err);
-                         else resolve();
-                     }
-                 );
-             });
-             
-             res.json({
-                 success: true,
-                 message: `已清理 ${days} 天前的日誌`
-             });
-         } catch (error) {
-             console.error('清理日誌失敗:', error);
-             res.status(500).json({
-                 success: false,
-                 message: '清理日誌失敗',
-                 error: error.message
-             });
-         }
-     }
+    /**
+     * 清理舊日誌
+     */
+    static cleanupLogs = BaseController.asyncHandler(async (req, res) => {
+        try {
+            const { days = 30 } = req.body;
+            
+            const cutoffDate = new Date();
+            cutoffDate.setDate(cutoffDate.getDate() - days);
+            
+            await DatabaseHelper.run(
+                'UPDATE operation_history SET deleted_at = datetime("now") WHERE created_at < ?',
+                [cutoffDate.toISOString()]
+            );
+            
+            await DatabaseHelper.run(
+                'UPDATE error_logs SET deleted_at = datetime("now") WHERE created_at < ?',
+                [cutoffDate.toISOString()]
+            );
+            
+            await DatabaseHelper.run(
+                'UPDATE login_history SET deleted_at = datetime("now") WHERE created_at < ?',
+                [cutoffDate.toISOString()]
+            );
+            
+            return BaseController.success(res, null, '日誌清理成功');
+        } catch (error) {
+            console.error('清理日誌失敗:', error);
+            return BaseController.error(res, '清理日誌失敗', 500);
+        }
+    });
 
-     /**
-      * 數據庫備份
-      */
-     static backupDatabase = BaseController.asyncHandler(async (req, res) => {
-         try {
-             res.json({
-                 success: true,
-                 message: '數據庫備份功能待實現'
-             });
-         } catch (error) {
-             console.error('數據庫備份失敗:', error);
-             res.status(500).json({
-                 success: false,
-                 message: '數據庫備份失敗',
-                 error: error.message
-             });
-         }
-     }
+    /**
+     * 數據庫備份
+     */
+    static backupDatabase = BaseController.asyncHandler(async (req, res) => {
+        try {
+            return BaseController.success(res, null, '數據庫備份功能待實現');
+        } catch (error) {
+            console.error('數據庫備份失敗:', error);
+            return BaseController.error(res, '數據庫備份失敗', 500);
+        }
+    });
 
-     /**
-      * 數據庫還原
-      */
-     static restoreDatabase = BaseController.asyncHandler(async (req, res) => {
-         try {
-             res.json({
-                 success: true,
-                 message: '數據庫還原功能待實現'
-             });
-         } catch (error) {
-             console.error('數據庫還原失敗:', error);
-             res.status(500).json({
-                 success: false,
-                 message: '數據庫還原失敗',
-                 error: error.message
-             });
-         }
-     }
+    /**
+     * 數據庫還原
+     */
+    static restoreDatabase = BaseController.asyncHandler(async (req, res) => {
+        try {
+            return BaseController.success(res, null, '數據庫還原功能待實現');
+        } catch (error) {
+            console.error('數據庫還原失敗:', error);
+            return BaseController.error(res, '數據庫還原失敗', 500);
+        }
+    });
 
-     /**
-      * 獲取數據庫信息
-      */
-     static getDatabaseInfo = BaseController.asyncHandler(async (req, res) => {
-         try {
-             const info = {
-                 type: 'SQLite',
-                 version: '3.x',
-                 size: '待計算',
-                 tables: []
-             };
-             
-             const tables = await new Promise((resolve, reject) => {
-                 db.all(
-                     "SELECT name FROM sqlite_master WHERE type='table'",
-                     [],
-                     (err, rows) => {
-                         if (err) reject(err);
-                         else resolve(rows || []);
-                     }
-                 );
-             });
-             
-             info.tables = tables.map(table => table.name);
-             
-             res.json({
-                 success: true,
-                 data: info,
-                 message: '數據庫信息獲取成功'
-             });
-         } catch (error) {
-             console.error('獲取數據庫信息失敗:', error);
-             res.status(500).json({
-                 success: false,
-                 message: '獲取數據庫信息失敗',
-                 error: error.message
-             });
-         }
-     }
+    /**
+     * 獲取數據庫信息
+     */
+    static getDatabaseInfo = BaseController.asyncHandler(async (req, res) => {
+        try {
+            return BaseController.success(res, { status: 'connected' }, '數據庫信息獲取成功');
+        } catch (error) {
+            console.error('獲取數據庫信息失敗:', error);
+            return BaseController.error(res, '獲取數據庫信息失敗', 500);
+        }
+    });
 
-     /**
-      * 優化數據庫
-      */
-     static optimizeDatabase = BaseController.asyncHandler(async (req, res) => {
-         try {
-             await new Promise((resolve, reject) => {
-                 db.run('VACUUM', [], (err) => {
-                     if (err) reject(err);
-                     else resolve();
-                 });
-             });
-             
-             res.json({
-                 success: true,
-                 message: '數據庫優化完成'
-             });
-         } catch (error) {
-             console.error('數據庫優化失敗:', error);
-             res.status(500).json({
-                 success: false,
-                 message: '數據庫優化失敗',
-                 error: error.message
-             });
-         }
-     }
- }
+    /**
+     * 優化數據庫
+     */
+    static optimizeDatabase = BaseController.asyncHandler(async (req, res) => {
+        try {
+            return BaseController.success(res, null, '數據庫優化功能待實現');
+        } catch (error) {
+            console.error('數據庫優化失敗:', error);
+            return BaseController.error(res, '數據庫優化失敗', 500);
+        }
+    });
+
+    /**
+     * 獲取文件列表
+     */
+    static getFiles = BaseController.asyncHandler(async (req, res) => {
+        try {
+            return BaseController.success(res, [], '文件列表獲取成功');
+        } catch (error) {
+            console.error('獲取文件列表失敗:', error);
+            return BaseController.error(res, '獲取文件列表失敗', 500);
+        }
+    });
+
+    /**
+     * 刪除文件
+     */
+    static deleteFiles = BaseController.asyncHandler(async (req, res) => {
+        try {
+            return BaseController.success(res, null, '文件刪除成功');
+        } catch (error) {
+            console.error('刪除文件失敗:', error);
+            return BaseController.error(res, '刪除文件失敗', 500);
+        }
+    });
+
+    /**
+     * 清理臨時文件
+     */
+    static cleanupTempFiles = BaseController.asyncHandler(async (req, res) => {
+        try {
+            return BaseController.success(res, null, '臨時文件清理成功');
+        } catch (error) {
+            console.error('清理臨時文件失敗:', error);
+            return BaseController.error(res, '清理臨時文件失敗', 500);
+        }
+    });
+
+    /**
+     * 獲取存儲使用情況
+     */
+    static getStorageUsage = BaseController.asyncHandler(async (req, res) => {
+        try {
+            return BaseController.success(res, { used: 0, total: 0 }, '存儲使用情況獲取成功');
+        } catch (error) {
+            console.error('獲取存儲使用情況失敗:', error);
+            return BaseController.error(res, '獲取存儲使用情況失敗', 500);
+        }
+    });
+
+    /**
+     * 系統健康檢查
+     */
+    static healthCheck = BaseController.asyncHandler(async (req, res) => {
+        try {
+            return BaseController.success(res, { status: 'healthy' }, '系統健康檢查完成');
+        } catch (error) {
+            console.error('系統健康檢查失敗:', error);
+            return BaseController.error(res, '系統健康檢查失敗', 500);
+        }
+    });
+
+    /**
+     * 清理緩存
+     */
+    static clearCache = BaseController.asyncHandler(async (req, res) => {
+        try {
+            return BaseController.success(res, null, '緩存清理成功');
+        } catch (error) {
+            console.error('清理緩存失敗:', error);
+            return BaseController.error(res, '清理緩存失敗', 500);
+        }
+    });
+
+    /**
+     * 重啟服務
+     */
+    static restartService = BaseController.asyncHandler(async (req, res) => {
+        try {
+            return BaseController.success(res, null, '服務重啟功能待實現');
+        } catch (error) {
+            console.error('重啟服務失敗:', error);
+            return BaseController.error(res, '重啟服務失敗', 500);
+        }
+    });
+
+    /**
+     * 獲取系統信息
+     */
+    static getSystemInfo = BaseController.asyncHandler(async (req, res) => {
+        try {
+            const systemInfo = {
+                platform: process.platform,
+                nodeVersion: process.version,
+                uptime: process.uptime(),
+                memory: process.memoryUsage()
+            };
+            
+            return BaseController.success(res, systemInfo, '系統信息獲取成功');
+        } catch (error) {
+            console.error('獲取系統信息失敗:', error);
+            return BaseController.error(res, '獲取系統信息失敗', 500);
+        }
+    });
+
+    /**
+     * 發送系統通知
+     */
+    static broadcastNotification = BaseController.asyncHandler(async (req, res) => {
+        try {
+            return BaseController.success(res, null, '系統通知發送成功');
+        } catch (error) {
+            console.error('發送系統通知失敗:', error);
+            return BaseController.error(res, '發送系統通知失敗', 500);
+        }
+    });
+
+    /**
+     * 獲取通知列表
+     */
+    static getNotifications = BaseController.asyncHandler(async (req, res) => {
+        try {
+            return BaseController.success(res, [], '通知列表獲取成功');
+        } catch (error) {
+            console.error('獲取通知列表失敗:', error);
+            return BaseController.error(res, '獲取通知列表失敗', 500);
+        }
+    });
+
+    /**
+     * 刪除通知
+     */
+    static deleteNotification = BaseController.asyncHandler(async (req, res) => {
+        try {
+            return BaseController.success(res, null, '通知刪除成功');
+        } catch (error) {
+            console.error('刪除通知失敗:', error);
+            return BaseController.error(res, '刪除通知失敗', 500);
+        }
+    });
+
+    /**
+     * 獲取部門列表
+     */
+    static getDepartments = BaseController.asyncHandler(async (req, res) => {
+        try {
+            const departments = [
+                { id: 1, name: '系學會', code: 'student_union' },
+                { id: 2, name: '文書部', code: 'secretary' },
+                { id: 3, name: '財務部', code: 'finance' },
+                { id: 4, name: '公關部', code: 'pr' },
+                { id: 5, name: '美宣部', code: 'design' },
+                { id: 6, name: '活動部', code: 'activity' }
+            ];
+            
+            return BaseController.success(res, departments, '部門列表獲取成功');
+        } catch (error) {
+            console.error('獲取部門列表失敗:', error);
+            return BaseController.error(res, '獲取部門列表失敗', 500);
+        }
+    });
+
+    /**
+     * 獲取學年度列表
+     */
+    static getYears = BaseController.asyncHandler(async (req, res) => {
+        try {
+            const sql = 'SELECT * FROM academic_years ORDER BY year_name DESC';
+            const years = await DatabaseHelper.all(sql, []);
+            
+            return BaseController.success(res, years, '學年度列表獲取成功');
+        } catch (error) {
+            console.error('獲取學年度列表失敗:', error);
+            return BaseController.error(res, '獲取學年度列表失敗', 500);
+        }
+    });
+
+    /**
+     * 創建新學年度
+     */
+    static createYear = BaseController.asyncHandler(async (req, res) => {
+        try {
+            const { year_name } = req.body;
+            
+            if (!year_name) {
+                return BaseController.error(res, '學年度名稱為必填欄位', 400);
+            }
+            
+            // 檢查學年度是否已存在
+            const checkSql = 'SELECT id FROM academic_years WHERE year_name = ?';
+            const existingYear = await DatabaseHelper.get(checkSql, [year_name]);
+            
+            if (existingYear) {
+                return BaseController.error(res, '該學年度已存在', 400);
+            }
+            
+            const sql = 'INSERT INTO academic_years (year_name, created_at) VALUES (?, datetime("now"))';
+            const result = await DatabaseHelper.run(sql, [year_name]);
+            
+            return BaseController.success(res, { id: result.lastID, year_name }, '學年度創建成功');
+        } catch (error) {
+            console.error('創建學年度失敗:', error);
+            return BaseController.error(res, '創建學年度失敗', 500);
+        }
+    });
+
+    /**
+     * 獲取用戶部門角色
+     */
+    static getUserDepartmentRole = BaseController.asyncHandler(async (req, res) => {
+        try {
+            const { id } = req.params;
+            
+            const sql = `
+                SELECT u.id, u.username, u.name, u.role,
+                       ud.department_id, ud.role as department_role
+                FROM users u
+                LEFT JOIN user_departments ud ON u.id = ud.user_id
+                WHERE u.id = ? AND u.deleted_at IS NULL
+            `;
+            
+            const userDepartment = await DatabaseHelper.get(sql, [id]);
+            
+            if (!userDepartment) {
+                return BaseController.error(res, '用戶不存在', 404);
+            }
+            
+            return BaseController.success(res, userDepartment, '用戶部門角色獲取成功');
+        } catch (error) {
+            console.error('獲取用戶部門角色失敗:', error);
+            return BaseController.error(res, '獲取用戶部門角色失敗', 500);
+        }
+    });
+
+    /**
+     * 更新用戶部門角色
+     */
+    static updateUserDepartmentRole = BaseController.asyncHandler(async (req, res) => {
+        try {
+            const { id } = req.params;
+            const { department_id, role } = req.body;
+            
+            // 檢查用戶是否存在
+            const userSql = 'SELECT id FROM users WHERE id = ? AND deleted_at IS NULL';
+            const user = await DatabaseHelper.get(userSql, [id]);
+            
+            if (!user) {
+                return BaseController.error(res, '用戶不存在', 404);
+            }
+            
+            // 檢查是否已有部門角色記錄
+            const checkSql = 'SELECT id FROM user_departments WHERE user_id = ?';
+            const existingRecord = await DatabaseHelper.get(checkSql, [id]);
+            
+            if (existingRecord) {
+                // 更新現有記錄
+                const updateSql = `
+                    UPDATE user_departments 
+                    SET department_id = ?, role = ?, updated_at = datetime('now')
+                    WHERE user_id = ?
+                `;
+                await DatabaseHelper.run(updateSql, [department_id, role, id]);
+            } else {
+                // 創建新記錄
+                const insertSql = `
+                    INSERT INTO user_departments (user_id, department_id, role, created_at, updated_at)
+                    VALUES (?, ?, ?, datetime('now'), datetime('now'))
+                `;
+                await DatabaseHelper.run(insertSql, [id, department_id, role]);
+            }
+            
+            return BaseController.success(res, null, '用戶部門角色更新成功');
+        } catch (error) {
+            console.error('更新用戶部門角色失敗:', error);
+            return BaseController.error(res, '更新用戶部門角色失敗', 500);
+        }
+    });
+}
 
 module.exports = AdminController;

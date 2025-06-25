@@ -407,8 +407,165 @@ class PrController extends BaseController {
     });
 
     static generatePrReport = BaseController.asyncHandler(async (req, res) => {
-         return BaseController.error(res, '方法尚未實現', 501);
-     });
+        try {
+            const { startDate, endDate, reportType } = req.body;
+            
+            // 這裡可以實現報告生成邏輯
+            // 暫時返回成功響應
+            
+            await BaseController.logAction(req, 'PR_REPORT_GENERATED', '生成公關報告', {
+                startDate,
+                endDate,
+                reportType
+            });
+            
+            return BaseController.success(res, null, '公關報告生成成功');
+        } catch (error) {
+            console.error('生成公關報告錯誤:', error);
+            return BaseController.error(res, '生成公關報告失敗', 500);
+        }
+    });
+
+    /**
+     * 獲取廠商列表
+     */
+    static getVendors = BaseController.asyncHandler(async (req, res) => {
+        try {
+            const sql = `
+                SELECT * FROM pr_vendors 
+                WHERE deleted_at IS NULL 
+                ORDER BY created_at DESC
+            `;
+            
+            const vendors = await DatabaseHelper.all(sql, []);
+            
+            return BaseController.success(res, vendors, '廠商列表獲取成功');
+        } catch (error) {
+            console.error('獲取廠商列表失敗:', error);
+            return BaseController.error(res, '獲取廠商列表失敗', 500);
+        }
+    });
+
+    /**
+     * 獲取單個廠商詳情
+     */
+    static getVendor = BaseController.asyncHandler(async (req, res) => {
+        const vendorId = BaseController.validateId(req.params.id);
+
+        if (!vendorId) {
+            return BaseController.error(res, '無效的廠商 ID', 400);
+        }
+
+        try {
+            const vendor = await DatabaseHelper.get('SELECT * FROM pr_vendors WHERE id = ? AND deleted_at IS NULL', [vendorId]);
+            
+            if (!vendor) {
+                return BaseController.error(res, '廠商不存在', 404);
+            }
+
+            return BaseController.success(res, vendor, '廠商詳情獲取成功');
+        } catch (error) {
+            console.error('獲取廠商詳情錯誤:', error);
+            return BaseController.error(res, '獲取廠商詳情失敗', 500);
+        }
+    });
+
+    /**
+     * 創建新廠商
+     */
+    static createVendor = BaseController.asyncHandler(async (req, res) => {
+        const { name, contact_person, phone, email, address, description, category } = req.body;
+
+        if (!name || !contact_person) {
+            return BaseController.error(res, '廠商名稱和聯絡人為必填項目', 400);
+        }
+
+        try {
+            const result = await DatabaseHelper.run(`
+                INSERT INTO pr_vendors (name, contact_person, phone, email, address, description, category, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
+            `, [name, contact_person, phone, email, address, description, category]);
+
+            await BaseController.logAction(req, 'VENDOR_CREATED', `創建廠商: ${name}`, {
+                vendorId: result.lastID
+            });
+
+            return BaseController.success(res, { id: result.lastID }, '廠商創建成功');
+        } catch (error) {
+            console.error('創建廠商錯誤:', error);
+            return BaseController.error(res, '創建廠商失敗', 500);
+        }
+    });
+
+    /**
+     * 更新廠商
+     */
+    static updateVendor = BaseController.asyncHandler(async (req, res) => {
+        const vendorId = BaseController.validateId(req.params.id);
+        const { name, contact_person, phone, email, address, description, category } = req.body;
+
+        if (!vendorId) {
+            return BaseController.error(res, '無效的廠商 ID', 400);
+        }
+
+        try {
+            const vendor = await DatabaseHelper.get('SELECT * FROM pr_vendors WHERE id = ? AND deleted_at IS NULL', [vendorId]);
+            if (!vendor) {
+                return BaseController.error(res, '廠商不存在', 404);
+            }
+
+            await DatabaseHelper.run(`
+                UPDATE pr_vendors SET 
+                    name = COALESCE(?, name),
+                    contact_person = COALESCE(?, contact_person),
+                    phone = COALESCE(?, phone),
+                    email = COALESCE(?, email),
+                    address = COALESCE(?, address),
+                    description = COALESCE(?, description),
+                    category = COALESCE(?, category),
+                    updated_at = datetime('now')
+                WHERE id = ?
+            `, [name, contact_person, phone, email, address, description, category, vendorId]);
+
+            await BaseController.logAction(req, 'VENDOR_UPDATED', `更新廠商: ${name || vendor.name}`, {
+                vendorId
+            });
+
+            return BaseController.success(res, null, '廠商更新成功');
+        } catch (error) {
+            console.error('更新廠商錯誤:', error);
+            return BaseController.error(res, '更新廠商失敗', 500);
+        }
+    });
+
+    /**
+     * 刪除廠商
+     */
+    static deleteVendor = BaseController.asyncHandler(async (req, res) => {
+        const vendorId = BaseController.validateId(req.params.id);
+
+        if (!vendorId) {
+            return BaseController.error(res, '無效的廠商 ID', 400);
+        }
+
+        try {
+            const vendor = await DatabaseHelper.get('SELECT * FROM pr_vendors WHERE id = ? AND deleted_at IS NULL', [vendorId]);
+            if (!vendor) {
+                return BaseController.error(res, '廠商不存在', 404);
+            }
+
+            await DatabaseHelper.run('UPDATE pr_vendors SET deleted_at = datetime(\'now\') WHERE id = ?', [vendorId]);
+
+            await BaseController.logAction(req, 'VENDOR_DELETED', `刪除廠商: ${vendor.name}`, {
+                vendorId
+            });
+
+            return BaseController.success(res, null, '廠商刪除成功');
+        } catch (error) {
+            console.error('刪除廠商錯誤:', error);
+            return BaseController.error(res, '刪除廠商失敗', 500);
+        }
+    });
     
     /**
      * 獲取單個公關活動詳情

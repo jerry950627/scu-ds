@@ -343,7 +343,43 @@ class AuthController extends BaseController {
     };
 
     /**
-     * 角色權限中間件
+     * 重設密碼（僅管理員可用）
+     */
+    static resetPassword = BaseController.asyncHandler(async (req, res) => {
+        const { userId, newPassword } = req.body;
+
+        try {
+            // 檢查目標用戶是否存在
+            const targetUser = await DatabaseHelper.get(
+                'SELECT id, username FROM users WHERE id = ?',
+                [userId]
+            );
+
+            if (!targetUser) {
+                return BaseController.error(res, '目標用戶不存在', 404);
+            }
+
+            // 加密新密碼
+            const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+            // 更新密碼
+            await DatabaseHelper.run(
+                'UPDATE users SET password = ?, updated_at = datetime("now") WHERE id = ?',
+                [hashedPassword, userId]
+            );
+
+            await BaseController.logAction(req, 'RESET_PASSWORD', `管理員重設用戶密碼: ${targetUser.username}`);
+
+            return BaseController.success(res, null, '密碼重設成功');
+
+        } catch (error) {
+            console.error('重設密碼錯誤:', error);
+            return BaseController.error(res, '重設密碼失敗', 500);
+        }
+    });
+
+    /**
+     * 檢查是否需要特定角色權限
      */
     static requireRole = (allowedRoles) => {
         return (req, res, next) => {

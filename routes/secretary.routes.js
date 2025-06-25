@@ -6,12 +6,12 @@
 const express = require('express');
 const router = express.Router();
 const SecretaryController = require('../controllers/secretaryController');
-const { requireAuth, requireRole } = require('../middleware/auth');
+const { requireRole, logActivity, preventDuplicateSubmission } = require('../middleware/auth');
 const { validateId, validatePagination, validateDateRange } = require('../middleware/validation');
 const { singleUpload, multipleUpload } = require('../utils/uploadConfig');
 
 // 所有秘書處路由都需要認證
-router.use(requireAuth);
+// 已停用認證檢查
 
 // 文件管理
 // 獲取文件列表
@@ -275,6 +275,86 @@ router.delete('/notifications/:id',
 // 批量標記通知為已讀
 router.put('/notifications/mark-all-read', 
     SecretaryController.markAllNotificationsAsRead
+);
+
+// 會議記錄路由（需要秘書處權限）
+// 獲取會議列表
+router.get('/meetings', 
+    requireRole(['secretary', 'admin']),
+    validatePagination,
+    SecretaryController.getMeetings
+);
+
+// 獲取單個會議詳情
+router.get('/meetings/:id', 
+    validateId,
+    SecretaryController.getMeeting
+);
+
+// 創建新會議
+router.post('/meetings', 
+    requireRole(['secretary', 'admin']),
+    singleUpload('DOCUMENT', 'attachment'),
+    logActivity('創建會議記錄'),
+    preventDuplicateSubmission,
+    SecretaryController.createMeeting
+);
+
+// 更新會議
+router.put('/meetings/:id', 
+    requireRole(['secretary', 'admin']),
+    validateId,
+    singleUpload('DOCUMENT', 'attachment'),
+    logActivity('更新會議記錄'),
+    SecretaryController.updateMeeting
+);
+
+// 刪除會議
+router.delete('/meetings/:id', 
+    requireRole(['secretary', 'admin']),
+    validateId,
+    logActivity('刪除會議記錄'),
+    SecretaryController.deleteMeeting
+);
+
+// 活動記錄路由（需要秘書處權限）
+// 獲取活動列表
+router.get('/activities', 
+    requireRole(['secretary', 'admin']),
+    validatePagination,
+    SecretaryController.getActivities
+);
+
+// 獲取單個活動詳情
+router.get('/activities/:id', 
+    validateId,
+    SecretaryController.getActivity
+);
+
+// 創建新活動
+router.post('/activities', 
+    requireRole(['secretary', 'admin']),
+    singleUpload('DOCUMENT', 'attachment'),
+    logActivity('創建活動記錄'),
+    preventDuplicateSubmission,
+    SecretaryController.createActivity
+);
+
+// 更新活動
+router.put('/activities/:id', 
+    requireRole(['secretary', 'admin']),
+    validateId,
+    singleUpload('DOCUMENT', 'attachment'),
+    logActivity('更新活動記錄'),
+    SecretaryController.updateActivity
+);
+
+// 刪除活動
+router.delete('/activities/:id', 
+    requireRole(['secretary', 'admin']),
+    validateId,
+    logActivity('刪除活動記錄'),
+    SecretaryController.deleteActivity
 );
 
 // 工作流程

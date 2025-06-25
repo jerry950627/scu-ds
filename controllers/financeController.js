@@ -563,6 +563,292 @@ class FinanceController extends BaseController {
             return BaseController.error(res, '匯入財務記錄失敗', 500);
         }
     });
+
+    /**
+     * 導入財務記錄
+     */
+    static importFinanceRecords = BaseController.asyncHandler(async (req, res) => {
+        // TODO: 實現批量導入功能
+        res.json({
+            success: true,
+            message: '批量導入功能開發中'
+        });
+    });
+
+    /**
+     * 導出到Excel
+     */
+    static exportToExcel = BaseController.asyncHandler(async (req, res) => {
+        // TODO: 實現Excel導出功能
+        res.json({
+            success: true,
+            message: 'Excel導出功能開發中'
+        });
+    });
+
+    /**
+     * 導出到PDF
+     */
+    static exportToPDF = BaseController.asyncHandler(async (req, res) => {
+        // TODO: 實現PDF導出功能
+        res.json({
+            success: true,
+            message: 'PDF導出功能開發中'
+        });
+    });
+
+    /**
+     * 獲取財務概覽
+     */
+    static getFinanceOverview = BaseController.asyncHandler(async (req, res) => {
+        try {
+            const db = DatabaseHelper.getDatabase();
+            
+            // 獲取總收入和總支出
+            const totalIncome = await db.get(
+                'SELECT COALESCE(SUM(amount), 0) as total FROM financial_records WHERE type = "income"'
+            );
+            const totalExpense = await db.get(
+                'SELECT COALESCE(SUM(amount), 0) as total FROM financial_records WHERE type = "expense"'
+            );
+            
+            const balance = totalIncome.total - totalExpense.total;
+            
+            res.json({
+                success: true,
+                data: {
+                    totalIncome: totalIncome.total,
+                    totalExpense: totalExpense.total,
+                    balance: balance
+                }
+            });
+        } catch (error) {
+            throw new ErrorHandler('獲取財務概覽失敗', 500, error);
+        }
+    });
+
+    /**
+     * 獲取收支統計
+     */
+    static getIncomeExpenseStats = BaseController.asyncHandler(async (req, res) => {
+        // TODO: 實現收支統計功能
+        res.json({
+            success: true,
+            data: {
+                income: 0,
+                expense: 0
+            }
+        });
+    });
+
+    /**
+     * 獲取分類統計
+     */
+    static getCategoryStats = BaseController.asyncHandler(async (req, res) => {
+        // TODO: 實現分類統計功能
+        res.json({
+            success: true,
+            data: []
+        });
+    });
+
+    /**
+     * 獲取月度統計
+     */
+    static getMonthlyStats = BaseController.asyncHandler(async (req, res) => {
+        // TODO: 實現月度統計功能
+        res.json({
+            success: true,
+            data: []
+        });
+    });
+
+    /**
+     * 獲取年度統計
+     */
+    static getYearlyStats = BaseController.asyncHandler(async (req, res) => {
+        // TODO: 實現年度統計功能
+        res.json({
+            success: true,
+            data: []
+        });
+    });
+
+    /**
+     * 獲取預算列表
+     */
+    static getBudgets = BaseController.asyncHandler(async (req, res) => {
+        // TODO: 實現預算管理功能
+        res.json({
+            success: true,
+            data: []
+        });
+    });
+
+    /**
+     * 創建預算
+     */
+    static createBudget = BaseController.asyncHandler(async (req, res) => {
+        // TODO: 實現創建預算功能
+        res.json({
+            success: true,
+            message: '創建預算功能開發中'
+        });
+    });
+
+    /**
+     * 更新預算
+     */
+    static updateBudget = BaseController.asyncHandler(async (req, res) => {
+        // TODO: 實現更新預算功能
+        res.json({
+            success: true,
+            message: '更新預算功能開發中'
+        });
+    });
+
+    /**
+     * 刪除預算
+     */
+    static deleteBudget = BaseController.asyncHandler(async (req, res) => {
+        // TODO: 實現刪除預算功能
+        res.json({
+            success: true,
+            message: '刪除預算功能開發中'
+        });
+    });
+
+    /**
+     * 獲取預算執行情況
+     */
+    static getBudgetExecution = BaseController.asyncHandler(async (req, res) => {
+        // TODO: 實現預算執行情況功能
+        res.json({
+            success: true,
+            data: {}
+        });
+    });
+
+    /**
+     * 獲取發票列表
+     */
+    static getInvoices = BaseController.asyncHandler(async (req, res) => {
+        // TODO: 實現發票管理功能
+        res.json({
+            success: true,
+            data: []
+        });
+    });
+
+    /**
+     * 創建發票
+     */
+    static createInvoice = BaseController.asyncHandler(async (req, res) => {
+        // TODO: 實現創建發票功能
+        res.json({
+            success: true,
+            message: '創建發票功能開發中'
+        });
+    });
+
+    /**
+     * 更新發票狀態
+     */
+    static updateInvoiceStatus = BaseController.asyncHandler(async (req, res) => {
+        // TODO: 實現更新發票狀態功能
+        res.json({
+            success: true,
+            message: '更新發票狀態功能開發中'
+        });
+    });
+
+    /**
+     * 生成發票PDF
+     */
+    static generateInvoicePDF = BaseController.asyncHandler(async (req, res) => {
+        // TODO: 實現生成發票PDF功能
+        res.json({
+            success: true,
+            message: '生成發票PDF功能開發中'
+        });
+    });
+
+    /**
+     * 生成財務報表
+     */
+    static generateFinanceReport = BaseController.asyncHandler(async (req, res) => {
+        // TODO: 實現生成財務報表功能
+        res.json({
+            success: true,
+            message: '生成財務報表功能開發中'
+        });
+    });
+
+    /**
+     * 獲取報表列表
+     */
+    static getReports = BaseController.asyncHandler(async (req, res) => {
+        // TODO: 實現獲取報表列表功能
+        res.json({
+            success: true,
+            data: []
+        });
+    });
+
+    /**
+     * 下載報表
+     */
+    static downloadReport = BaseController.asyncHandler(async (req, res) => {
+        // TODO: 實現下載報表功能
+        res.json({
+            success: true,
+            message: '下載報表功能開發中'
+        });
+    });
+
+    /**
+     * 提交審核
+     */
+    static submitForReview = BaseController.asyncHandler(async (req, res) => {
+        // TODO: 實現提交審核功能
+        res.json({
+            success: true,
+            message: '提交審核功能開發中'
+        });
+    });
+
+    /**
+     * 審核財務記錄
+     */
+    static reviewFinanceRecord = BaseController.asyncHandler(async (req, res) => {
+        // TODO: 實現審核財務記錄功能
+        res.json({
+            success: true,
+            message: '審核財務記錄功能開發中'
+        });
+    });
+
+    /**
+     * 獲取待審核記錄
+     */
+    static getPendingReviews = BaseController.asyncHandler(async (req, res) => {
+        // TODO: 實現獲取待審核記錄功能
+        res.json({
+            success: true,
+            data: []
+        });
+    });
+
+    /**
+     * 獲取審核歷史
+     */
+    static getReviewHistory = BaseController.asyncHandler(async (req, res) => {
+        // TODO: 實現獲取審核歷史功能
+        res.json({
+            success: true,
+            data: []
+        });
+    });
 }
 
 module.exports = FinanceController;

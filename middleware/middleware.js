@@ -7,7 +7,7 @@ const express = require('express');
 const session = require('express-session');
 const bodyParser = require('body-parser');
 const path = require('path');
-const config = require('./app');
+const config = require('../config/app');
 
 /**
  * 設置應用中間件

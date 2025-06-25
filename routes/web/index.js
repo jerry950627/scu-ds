@@ -1,21 +1,25 @@
 /**
  * Web 頁面路由配置
- * 統一管理所有頁面路由，消除重複代碼
+ * 統一管理所有頁面路由，提供認證保護
  */
 
 const express = require('express');
-const router = express.Router();
+const path = require('path');
 const { requireAuth, requireAdmin, redirectIfAuthenticated } = require('../../middleware/auth');
-const { renderPageByName } = require('../../utils/renderHelper');
+const router = express.Router();
 
 // 主頁路由
-router.get('/', redirectIfAuthenticated, (req, res) => {
-    renderPageByName(res, 'login', { error: null });
+router.get('/', (req, res) => {
+    // 如果已登入，重定向到儀表板
+    if (req.session && req.session.user) {
+        return res.redirect('/dashboard');
+    }
+    res.sendFile(path.join(__dirname, '../../public/pages/index.html'));
 });
 
 // 登入頁面
 router.get('/login', redirectIfAuthenticated, (req, res) => {
-    renderPageByName(res, 'login', { error: null });
+    res.sendFile(path.join(__dirname, '../../public/pages/index.html'));
 });
 
 // 需要認證的頁面路由配置
@@ -30,15 +34,15 @@ const authenticatedPages = [
 ];
 
 // 批量註冊需要認證的頁面路由
-authenticatedPages.forEach(({ path, page }) => {
-    router.get(path, requireAuth, (req, res) => {
-        renderPageByName(res, page);
+authenticatedPages.forEach(({ path: routePath, page }) => {
+    router.get(routePath, requireAuth, (req, res) => {
+        res.sendFile(path.join(__dirname, `../../public/pages/${page}.html`));
     });
 });
 
-// 管理員頁面（需要管理員權限）
+// 管理員頁面
 router.get('/admin', requireAdmin, (req, res) => {
-    renderPageByName(res, 'admin');
+    res.sendFile(path.join(__dirname, '../../public/pages/admin.html'));
 });
 
 module.exports = router;

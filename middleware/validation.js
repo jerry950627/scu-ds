@@ -398,7 +398,7 @@ module.exports.validateDesign = ValidationMiddleware.combine([
     ValidationMiddleware.validateStringLength('title', 2, 200)
 ]);
 
-module.exports.validateId = ValidationMiddleware.validateId();
+module.exports.validateId = ValidationMiddleware.validateId;
 
 module.exports.validatePagination = (req, res, next) => {
     const page = parseInt(req.query.page) || 1;

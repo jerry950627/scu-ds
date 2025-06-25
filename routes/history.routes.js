@@ -6,11 +6,8 @@
 const express = require('express');
 const router = express.Router();
 const HistoryController = require('../controllers/historyController');
-const { requireAuth, requireRole } = require('../middleware/auth');
+const { requireRole, requireAdmin, logActivity } = require('../middleware/auth');
 const { validateId, validatePagination, validateDateRange } = require('../middleware/validation');
-
-// 所有歷史記錄路由都需要認證
-router.use(requireAuth);
 
 // 操作歷史記錄
 // 獲取操作歷史列表
@@ -31,18 +28,21 @@ router.get('/operations/:id',
 // 記錄操作歷史（系統內部調用）
 router.post('/operations', 
     requireRole(['admin']),
+    logActivity('記錄操作歷史'),
     HistoryController.logOperation
 );
 
 // 批量刪除操作記錄
 router.delete('/operations/batch', 
     requireRole(['admin']),
+    logActivity('批量刪除操作記錄'),
     HistoryController.batchDeleteOperations
 );
 
 // 清理舊的操作記錄
 router.delete('/operations/cleanup', 
     requireRole(['admin']),
+    logActivity('清理操作歷史'),
     HistoryController.cleanupOperationHistory
 );
 
@@ -57,6 +57,7 @@ router.get('/logins',
 
 // 獲取當前用戶的登入歷史
 router.get('/logins/my', 
+    requireRole(['student', 'admin']),
     validatePagination,
     HistoryController.getMyLoginHistory
 );

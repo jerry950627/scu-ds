@@ -107,7 +107,10 @@ const ApiService = {
     get: async function(url) {
         try {
             console.log('📡 GET請求:', url);
-            const response = await fetch(url);
+            const response = await fetch(url, {
+                method: 'GET',
+                credentials: 'include'
+            });
             console.log('📡 GET回應:', response.status, response.statusText);
             return await ErrorHandler.handleApiError(response);
         } catch (error) {
@@ -127,6 +130,7 @@ const ApiService = {
                 headers: {
                     'Content-Type': 'application/json'
                 },
+                credentials: 'include',
                 body: JSON.stringify(data)
             });
             console.log('📡 POST回應:', response.status, response.statusText);
@@ -148,6 +152,7 @@ const ApiService = {
                 headers: {
                     'Content-Type': 'application/json'
                 },
+                credentials: 'include',
                 body: JSON.stringify(data)
             });
             console.log('📡 PUT回應:', response.status, response.statusText);
@@ -165,7 +170,8 @@ const ApiService = {
         try {
             console.log('📡 DELETE請求:', url);
             const response = await fetch(url, {
-                method: 'DELETE'
+                method: 'DELETE',
+                credentials: 'include'
             });
             console.log('📡 DELETE回應:', response.status, response.statusText);
             return await ErrorHandler.handleApiError(response);
@@ -183,6 +189,7 @@ const ApiService = {
             console.log('📡 檔案上傳請求:', url);
             const response = await fetch(url, {
                 method: 'POST',
+                credentials: 'include',
                 body: formData
             });
             console.log('📡 檔案上傳回應:', response.status, response.statusText);
@@ -403,7 +410,7 @@ document.addEventListener('DOMContentLoaded', function() {
         testApiError: async () => {
             console.log('🧪 測試API錯誤處理...');
             try {
-                await fetch('/api/nonexistent');
+                await fetch('/api/test/error');
             } catch (error) {
                 console.log('✅ API錯誤測試完成');
             }

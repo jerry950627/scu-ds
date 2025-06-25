@@ -6,15 +6,48 @@
 const express = require('express');
 const router = express.Router();
 const FinanceController = require('../controllers/financeController');
-const { requireAuth, requireRole } = require('../middleware/auth');
+const { requireRole, logActivity, preventDuplicateSubmission } = require('../middleware/auth');
 const { validateFinance, validateId, validatePagination, validateDateRange } = require('../middleware/validation');
 const { singleUpload } = require('../utils/uploadConfig');
 
-// 所有財務路由都需要認證
-router.use(requireAuth);
-
 // 獲取財務記錄列表
 router.get('/', 
+    requireRole(['admin', 'finance', 'secretary']),
+    validatePagination,
+    validateDateRange,
+    FinanceController.getRecords
+);
+
+// 創建新財務記錄
+router.post('/', 
+    requireRole(['admin', 'finance']),
+    singleUpload('DOCUMENT', 'receipt'),
+    validateFinance,
+    logActivity('創建財務記錄'),
+    preventDuplicateSubmission,
+    FinanceController.createRecord
+);
+
+// 更新財務記錄
+router.put('/:id', 
+    requireRole(['admin', 'finance']),
+    validateId,
+    singleUpload('DOCUMENT', 'receipt'),
+    validateFinance,
+    logActivity('更新財務記錄'),
+    FinanceController.updateRecord
+);
+
+// 刪除財務記錄
+router.delete('/:id', 
+    requireRole(['admin', 'finance']),
+    validateId,
+    logActivity('刪除財務記錄'),
+    FinanceController.deleteRecord
+);
+
+// 獲取財務記錄列表 (別名路由)
+router.get('/records', 
     requireRole(['admin', 'finance', 'secretary']),
     validatePagination,
     validateDateRange,
@@ -26,30 +59,6 @@ router.get('/:id',
     requireRole(['admin', 'finance', 'secretary']),
     validateId,
     FinanceController.getRecord
-);
-
-// 創建新財務記錄
-router.post('/', 
-    requireRole(['admin', 'finance']),
-    singleUpload('DOCUMENT', 'receipt'),
-    validateFinance,
-    FinanceController.createRecord
-);
-
-// 更新財務記錄
-router.put('/:id', 
-    requireRole(['admin', 'finance']),
-    validateId,
-    singleUpload('DOCUMENT', 'receipt'),
-    validateFinance,
-    FinanceController.updateRecord
-);
-
-// 刪除財務記錄
-router.delete('/:id', 
-    requireRole(['admin', 'finance']),
-    validateId,
-    FinanceController.deleteRecord
 );
 
 // 批量導入財務記錄
@@ -71,6 +80,12 @@ router.get('/export/pdf',
     requireRole(['admin', 'finance', 'secretary']),
     validateDateRange,
     FinanceController.exportToPDF
+);
+
+// 獲取財務摘要
+router.get('/summary', 
+    requireRole(['admin', 'finance', 'secretary']),
+    FinanceController.getFinanceOverview
 );
 
 // 財務統計

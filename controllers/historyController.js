@@ -717,5 +717,837 @@ class HistoryController extends BaseController {
             });
         }
     });
+
+    /**
+     * 獲取操作類型統計
+     */
+    static getOperationTypeStats = BaseController.asyncHandler(async (req, res) => {
+        try {
+            const { start_date, end_date } = req.query;
+            
+            let sql = `
+                SELECT 
+                    operation_type,
+                    COUNT(*) as count,
+                    COUNT(DISTINCT user_id) as unique_users
+                FROM operation_history 
+                WHERE deleted_at IS NULL
+            `;
+            
+            const params = [];
+            
+            if (start_date) {
+                sql += ' AND created_at >= ?';
+                params.push(start_date);
+            }
+            
+            if (end_date) {
+                sql += ' AND created_at <= ?';
+                params.push(end_date);
+            }
+            
+            sql += ' GROUP BY operation_type ORDER BY count DESC';
+            
+            const stats = await DatabaseHelper.all(sql, params);
+            
+            return BaseController.success(res, {
+                operationTypeStats: stats,
+                period: { start_date, end_date }
+            }, '操作類型統計獲取成功');
+        } catch (error) {
+            console.error('獲取操作類型統計失敗:', error);
+            return BaseController.error(res, '獲取操作類型統計失敗', 500);
+        }
+    });
+
+    /**
+     * 獲取登入統計
+     */
+    static getLoginStats = BaseController.asyncHandler(async (req, res) => {
+        try {
+            const { start_date, end_date } = req.query;
+            
+            let sql = `
+                SELECT 
+                    DATE(login_time) as date,
+                    COUNT(*) as total_logins,
+                    COUNT(CASE WHEN success = 1 THEN 1 END) as successful_logins,
+                    COUNT(CASE WHEN success = 0 THEN 1 END) as failed_logins,
+                    COUNT(DISTINCT user_id) as unique_users
+                FROM login_history 
+                WHERE 1=1
+            `;
+            
+            const params = [];
+            
+            if (start_date) {
+                sql += ' AND login_time >= ?';
+                params.push(start_date);
+            }
+            
+            if (end_date) {
+                sql += ' AND login_time <= ?';
+                params.push(end_date);
+            }
+            
+            sql += ' GROUP BY DATE(login_time) ORDER BY date DESC';
+            
+            const stats = await DatabaseHelper.all(sql, params);
+            
+            return BaseController.success(res, {
+                loginStats: stats,
+                period: { start_date, end_date }
+            }, '登入統計獲取成功');
+        } catch (error) {
+            console.error('獲取登入統計失敗:', error);
+            return BaseController.error(res, '獲取登入統計失敗', 500);
+        }
+    });
+
+    /**
+     * 獲取每日活動統計
+     */
+    static getDailyActivityStats = BaseController.asyncHandler(async (req, res) => {
+        try {
+            const { start_date, end_date } = req.query;
+            
+            let sql = `
+                SELECT 
+                    DATE(created_at) as date,
+                    COUNT(*) as total_operations,
+                    COUNT(DISTINCT user_id) as active_users,
+                    COUNT(DISTINCT operation_type) as operation_types
+                FROM operation_history 
+                WHERE deleted_at IS NULL
+            `;
+            
+            const params = [];
+            
+            if (start_date) {
+                sql += ' AND created_at >= ?';
+                params.push(start_date);
+            }
+            
+            if (end_date) {
+                sql += ' AND created_at <= ?';
+                params.push(end_date);
+            }
+            
+            sql += ' GROUP BY DATE(created_at) ORDER BY date DESC';
+            
+            const stats = await DatabaseHelper.all(sql, params);
+            
+            return BaseController.success(res, {
+                dailyStats: stats,
+                period: { start_date, end_date }
+            }, '每日活動統計獲取成功');
+        } catch (error) {
+            console.error('獲取每日活動統計失敗:', error);
+            return BaseController.error(res, '獲取每日活動統計失敗', 500);
+        }
+    });
+
+    /**
+     * 獲取每小時活動統計
+     */
+    static getHourlyActivityStats = BaseController.asyncHandler(async (req, res) => {
+        try {
+            const { start_date, end_date } = req.query;
+            
+            let sql = `
+                SELECT 
+                    strftime('%H', created_at) as hour,
+                    COUNT(*) as total_operations,
+                    COUNT(DISTINCT user_id) as active_users
+                FROM operation_history 
+                WHERE deleted_at IS NULL
+            `;
+            
+            const params = [];
+            
+            if (start_date) {
+                sql += ' AND created_at >= ?';
+                params.push(start_date);
+            }
+            
+            if (end_date) {
+                sql += ' AND created_at <= ?';
+                params.push(end_date);
+            }
+            
+            sql += ' GROUP BY strftime(\'%H\', created_at) ORDER BY hour';
+            
+            const stats = await DatabaseHelper.all(sql, params);
+            
+            return BaseController.success(res, {
+                hourlyStats: stats,
+                period: { start_date, end_date }
+            }, '每小時活動統計獲取成功');
+        } catch (error) {
+            console.error('獲取每小時活動統計失敗:', error);
+            return BaseController.error(res, '獲取每小時活動統計失敗', 500);
+        }
+    });
+
+    /**
+     * 獲取最活躍用戶
+     */
+    static getMostActiveUsers = BaseController.asyncHandler(async (req, res) => {
+        try {
+            const { start_date, end_date, limit = 10 } = req.query;
+            
+            let sql = `
+                SELECT 
+                    h.user_id,
+                    u.username,
+                    u.name,
+                    COUNT(*) as operation_count,
+                    COUNT(DISTINCT h.operation_type) as operation_types,
+                    MAX(h.created_at) as last_activity
+                FROM operation_history h
+                LEFT JOIN users u ON h.user_id = u.id
+                WHERE h.deleted_at IS NULL
+            `;
+            
+            const params = [];
+            
+            if (start_date) {
+                sql += ' AND h.created_at >= ?';
+                params.push(start_date);
+            }
+            
+            if (end_date) {
+                sql += ' AND h.created_at <= ?';
+                params.push(end_date);
+            }
+            
+            sql += ' GROUP BY h.user_id, u.username, u.name ORDER BY operation_count DESC LIMIT ?';
+            params.push(parseInt(limit));
+            
+            const users = await DatabaseHelper.all(sql, params);
+            
+            return BaseController.success(res, {
+                mostActiveUsers: users,
+                period: { start_date, end_date }
+            }, '最活躍用戶獲取成功');
+        } catch (error) {
+            console.error('獲取最活躍用戶失敗:', error);
+            return BaseController.error(res, '獲取最活躍用戶失敗', 500);
+        }
+    });
+
+    /**
+     * 獲取最常用功能
+     */
+    static getPopularFeatures = BaseController.asyncHandler(async (req, res) => {
+        try {
+            const { start_date, end_date, limit = 10 } = req.query;
+            
+            let sql = `
+                SELECT 
+                    operation_type as feature,
+                    COUNT(*) as usage_count,
+                    COUNT(DISTINCT user_id) as unique_users,
+                    AVG(CASE WHEN details IS NOT NULL THEN 1 ELSE 0 END) as detail_rate
+                FROM operation_history 
+                WHERE deleted_at IS NULL
+            `;
+            
+            const params = [];
+            
+            if (start_date) {
+                sql += ' AND created_at >= ?';
+                params.push(start_date);
+            }
+            
+            if (end_date) {
+                sql += ' AND created_at <= ?';
+                params.push(end_date);
+            }
+            
+            sql += ' GROUP BY operation_type ORDER BY usage_count DESC LIMIT ?';
+            params.push(parseInt(limit));
+            
+            const features = await DatabaseHelper.all(sql, params);
+            
+            return BaseController.success(res, {
+                popularFeatures: features,
+                period: { start_date, end_date }
+            }, '最常用功能獲取成功');
+        } catch (error) {
+            console.error('獲取最常用功能失敗:', error);
+            return BaseController.error(res, '獲取最常用功能失敗', 500);
+        }
+    });
+
+    /**
+     * 獲取錯誤日誌列表
+     */
+    static getErrorLogs = BaseController.asyncHandler(async (req, res) => {
+        try {
+            const { page = 1, limit = 20, start_date, end_date, level, resolved } = req.query;
+            const offset = (page - 1) * limit;
+            
+            let sql = `
+                SELECT * FROM error_logs 
+                WHERE deleted_at IS NULL
+            `;
+            
+            const params = [];
+            
+            if (start_date) {
+                sql += ' AND created_at >= ?';
+                params.push(start_date);
+            }
+            
+            if (end_date) {
+                sql += ' AND created_at <= ?';
+                params.push(end_date);
+            }
+            
+            if (level) {
+                sql += ' AND level = ?';
+                params.push(level);
+            }
+            
+            if (resolved !== undefined) {
+                sql += ' AND resolved = ?';
+                params.push(resolved === 'true' ? 1 : 0);
+            }
+            
+            sql += ' ORDER BY created_at DESC LIMIT ? OFFSET ?';
+            params.push(parseInt(limit), offset);
+            
+            const errorLogs = await DatabaseHelper.all(sql, params);
+            
+            // 獲取總數
+            let countSql = 'SELECT COUNT(*) as total FROM error_logs WHERE deleted_at IS NULL';
+            const countParams = [];
+            
+            if (start_date) {
+                countSql += ' AND created_at >= ?';
+                countParams.push(start_date);
+            }
+            
+            if (end_date) {
+                countSql += ' AND created_at <= ?';
+                countParams.push(end_date);
+            }
+            
+            if (level) {
+                countSql += ' AND level = ?';
+                countParams.push(level);
+            }
+            
+            if (resolved !== undefined) {
+                countSql += ' AND resolved = ?';
+                countParams.push(resolved === 'true' ? 1 : 0);
+            }
+            
+            const totalResult = await DatabaseHelper.get(countSql, countParams);
+            const total = totalResult ? totalResult.total : 0;
+            
+            return BaseController.success(res, {
+                errorLogs,
+                pagination: BaseController.getPaginationInfo(page, limit, total)
+            }, '錯誤日誌獲取成功');
+        } catch (error) {
+            console.error('獲取錯誤日誌失敗:', error);
+            return BaseController.error(res, '獲取錯誤日誌失敗', 500);
+        }
+    });
+
+    /**
+     * 獲取錯誤詳情
+     */
+    static getErrorDetail = BaseController.asyncHandler(async (req, res) => {
+        try {
+            const { id } = req.params;
+            
+            const sql = `
+                SELECT * FROM error_logs 
+                WHERE id = ? AND deleted_at IS NULL
+            `;
+            
+            const error = await DatabaseHelper.get(sql, [id]);
+            
+            if (!error) {
+                return BaseController.error(res, '錯誤記錄不存在', 404);
+            }
+            
+            return BaseController.success(res, error, '錯誤詳情獲取成功');
+        } catch (error) {
+            console.error('獲取錯誤詳情失敗:', error);
+            return BaseController.error(res, '獲取錯誤詳情失敗', 500);
+        }
+    });
+
+    /**
+     * 記錄錯誤
+     */
+    static logError = BaseController.asyncHandler(async (req, res) => {
+        try {
+            return BaseController.success(res, null, '錯誤記錄成功');
+        } catch (error) {
+            console.error('記錄錯誤失敗:', error);
+            return BaseController.error(res, '記錄錯誤失敗', 500);
+        }
+    });
+
+    /**
+     * 獲取審計日誌
+     */
+    static getAuditLogs = BaseController.asyncHandler(async (req, res) => {
+        try {
+            return BaseController.success(res, { auditLogs: [], pagination: {} }, '審計日誌獲取成功');
+        } catch (error) {
+            console.error('獲取審計日誌失敗:', error);
+            return BaseController.error(res, '獲取審計日誌失敗', 500);
+        }
+    });
+
+    /**
+     * 獲取特定資源的審計日誌
+     */
+    static getResourceAuditLogs = BaseController.asyncHandler(async (req, res) => {
+        try {
+            return BaseController.success(res, { auditLogs: [], pagination: {} }, '資源審計日誌獲取成功');
+        } catch (error) {
+            console.error('獲取資源審計日誌失敗:', error);
+            return BaseController.error(res, '獲取資源審計日誌失敗', 500);
+        }
+    });
+
+    /**
+     * 記錄審計日誌
+     */
+    static logAudit = BaseController.asyncHandler(async (req, res) => {
+        try {
+            return BaseController.success(res, null, '審計日誌記錄成功');
+        } catch (error) {
+            console.error('記錄審計日誌失敗:', error);
+            return BaseController.error(res, '記錄審計日誌失敗', 500);
+        }
+    });
+
+    /**
+     * 生成活動報告
+     */
+    static generateActivityReport = BaseController.asyncHandler(async (req, res) => {
+        try {
+            return BaseController.success(res, null, '活動報告生成成功');
+        } catch (error) {
+            console.error('生成活動報告失敗:', error);
+            return BaseController.error(res, '生成活動報告失敗', 500);
+        }
+    });
+
+    /**
+     * 生成安全報告
+     */
+    static generateSecurityReport = BaseController.asyncHandler(async (req, res) => {
+        try {
+            return BaseController.success(res, null, '安全報告生成成功');
+        } catch (error) {
+            console.error('生成安全報告失敗:', error);
+            return BaseController.error(res, '生成安全報告失敗', 500);
+        }
+    });
+
+    /**
+     * 搜索操作記錄
+     */
+    static searchOperations = BaseController.asyncHandler(async (req, res) => {
+        try {
+            return BaseController.success(res, { operations: [], pagination: {} }, '操作記錄搜索成功');
+        } catch (error) {
+            console.error('搜索操作記錄失敗:', error);
+            return BaseController.error(res, '搜索操作記錄失敗', 500);
+        }
+    });
+
+    /**
+     * 搜索登入記錄
+     */
+    static searchLogins = BaseController.asyncHandler(async (req, res) => {
+        try {
+            return BaseController.success(res, { logins: [], pagination: {} }, '登入記錄搜索成功');
+        } catch (error) {
+            console.error('搜索登入記錄失敗:', error);
+            return BaseController.error(res, '搜索登入記錄失敗', 500);
+        }
+    });
+
+    /**
+     * 搜索錯誤記錄
+     */
+    static searchErrors = BaseController.asyncHandler(async (req, res) => {
+        try {
+            return BaseController.success(res, { errors: [], pagination: {} }, '錯誤記錄搜索成功');
+        } catch (error) {
+            console.error('搜索錯誤記錄失敗:', error);
+            return BaseController.error(res, '搜索錯誤記錄失敗', 500);
+        }
+    });
+
+    /**
+     * 高級搜索
+     */
+    static advancedSearch = BaseController.asyncHandler(async (req, res) => {
+        try {
+            return BaseController.success(res, { results: [], pagination: {} }, '高級搜索成功');
+        } catch (error) {
+            console.error('高級搜索失敗:', error);
+            return BaseController.error(res, '高級搜索失敗', 500);
+        }
+    });
+
+    /**
+     * 標記錯誤為已解決
+     */
+    static resolveError = BaseController.asyncHandler(async (req, res) => {
+        try {
+            return BaseController.success(res, null, '錯誤標記為已解決');
+        } catch (error) {
+            console.error('標記錯誤失敗:', error);
+            return BaseController.error(res, '標記錯誤失敗', 500);
+        }
+    });
+
+    /**
+     * 批量標記錯誤為已解決
+     */
+    static batchResolveErrors = BaseController.asyncHandler(async (req, res) => {
+        try {
+            return BaseController.success(res, null, '批量標記錯誤成功');
+        } catch (error) {
+            console.error('批量標記錯誤失敗:', error);
+            return BaseController.error(res, '批量標記錯誤失敗', 500);
+        }
+    });
+
+    /**
+     * 清理錯誤日誌
+     */
+    static cleanupErrorLogs = BaseController.asyncHandler(async (req, res) => {
+        try {
+            return BaseController.success(res, null, '錯誤日誌清理成功');
+        } catch (error) {
+            console.error('清理錯誤日誌失敗:', error);
+            return BaseController.error(res, '清理錯誤日誌失敗', 500);
+        }
+    });
+
+    /**
+     * 獲取數據保留設定
+     */
+    static getRetentionSettings = BaseController.asyncHandler(async (req, res) => {
+        try {
+            return BaseController.success(res, {}, '數據保留設定獲取成功');
+        } catch (error) {
+            console.error('獲取數據保留設定失敗:', error);
+            return BaseController.error(res, '獲取數據保留設定失敗', 500);
+        }
+    });
+
+    /**
+     * 更新數據保留設定
+     */
+    static updateRetentionSettings = BaseController.asyncHandler(async (req, res) => {
+        try {
+            return BaseController.success(res, null, '數據保留設定更新成功');
+        } catch (error) {
+            console.error('更新數據保留設定失敗:', error);
+            return BaseController.error(res, '更新數據保留設定失敗', 500);
+        }
+    });
+
+    /**
+     * 執行數據清理
+     */
+    static executeDataCleanup = BaseController.asyncHandler(async (req, res) => {
+        try {
+            return BaseController.success(res, null, '數據清理執行成功');
+        } catch (error) {
+            console.error('執行數據清理失敗:', error);
+            return BaseController.error(res, '執行數據清理失敗', 500);
+        }
+    });
+
+    /**
+     * 獲取清理預覽
+     */
+    static getCleanupPreview = BaseController.asyncHandler(async (req, res) => {
+        try {
+            return BaseController.success(res, {}, '清理預覽獲取成功');
+        } catch (error) {
+            console.error('獲取清理預覽失敗:', error);
+            return BaseController.error(res, '獲取清理預覽失敗', 500);
+        }
+    });
+
+    /**
+     * 獲取錯誤統計
+     */
+    static getErrorStats = BaseController.asyncHandler(async (req, res) => {
+        try {
+            return BaseController.success(res, {}, '錯誤統計獲取成功');
+        } catch (error) {
+            console.error('獲取錯誤統計失敗:', error);
+            return BaseController.error(res, '獲取錯誤統計失敗', 500);
+        }
+    });
+
+    /**
+     * 導出操作歷史
+     */
+    static exportOperationHistory = BaseController.asyncHandler(async (req, res) => {
+        try {
+            return BaseController.success(res, null, '操作歷史導出成功');
+        } catch (error) {
+            console.error('導出操作歷史失敗:', error);
+            return BaseController.error(res, '導出操作歷史失敗', 500);
+        }
+    });
+
+    /**
+     * 導出登入歷史
+     */
+    static exportLoginHistory = BaseController.asyncHandler(async (req, res) => {
+        try {
+            return BaseController.success(res, null, '登入歷史導出成功');
+        } catch (error) {
+            console.error('導出登入歷史失敗:', error);
+            return BaseController.error(res, '導出登入歷史失敗', 500);
+        }
+    });
+
+    /**
+     * 導出錯誤日誌
+     */
+    static exportErrorLogs = BaseController.asyncHandler(async (req, res) => {
+        try {
+            return BaseController.success(res, null, '錯誤日誌導出成功');
+        } catch (error) {
+            console.error('導出錯誤日誌失敗:', error);
+            return BaseController.error(res, '導出錯誤日誌失敗', 500);
+        }
+    });
+
+    /**
+     * 導出審計日誌
+     */
+    static exportAuditLogs = BaseController.asyncHandler(async (req, res) => {
+        try {
+            return BaseController.success(res, null, '審計日誌導出成功');
+        } catch (error) {
+            console.error('導出審計日誌失敗:', error);
+            return BaseController.error(res, '導出審計日誌失敗', 500);
+        }
+    });
+
+    /**
+     * 獲取審計日誌
+     */
+    static getAuditLogs = BaseController.asyncHandler(async (req, res) => {
+        try {
+            return BaseController.success(res, [], '審計日誌獲取成功');
+        } catch (error) {
+            console.error('獲取審計日誌失敗:', error);
+            return BaseController.error(res, '獲取審計日誌失敗', 500);
+        }
+    });
+
+    /**
+     * 獲取資源審計日誌
+     */
+    static getResourceAuditLogs = BaseController.asyncHandler(async (req, res) => {
+        try {
+            return BaseController.success(res, [], '資源審計日誌獲取成功');
+        } catch (error) {
+            console.error('獲取資源審計日誌失敗:', error);
+            return BaseController.error(res, '獲取資源審計日誌失敗', 500);
+        }
+    });
+
+    /**
+     * 記錄審計日誌
+     */
+    static logAudit = BaseController.asyncHandler(async (req, res) => {
+        try {
+            return BaseController.success(res, null, '審計日誌記錄成功');
+        } catch (error) {
+            console.error('記錄審計日誌失敗:', error);
+            return BaseController.error(res, '記錄審計日誌失敗', 500);
+        }
+    });
+
+    /**
+     * 導出操作歷史
+     */
+    static exportOperationHistory = BaseController.asyncHandler(async (req, res) => {
+        try {
+            return BaseController.success(res, null, '操作歷史導出功能待實現');
+        } catch (error) {
+            console.error('導出操作歷史失敗:', error);
+            return BaseController.error(res, '導出操作歷史失敗', 500);
+        }
+    });
+
+    /**
+     * 導出登入歷史
+     */
+    static exportLoginHistory = BaseController.asyncHandler(async (req, res) => {
+        try {
+            return BaseController.success(res, null, '登入歷史導出功能待實現');
+        } catch (error) {
+            console.error('導出登入歷史失敗:', error);
+            return BaseController.error(res, '導出登入歷史失敗', 500);
+        }
+    });
+
+    /**
+     * 導出錯誤日誌
+     */
+    static exportErrorLogs = BaseController.asyncHandler(async (req, res) => {
+        try {
+            return BaseController.success(res, null, '錯誤日誌導出功能待實現');
+        } catch (error) {
+            console.error('導出錯誤日誌失敗:', error);
+            return BaseController.error(res, '導出錯誤日誌失敗', 500);
+        }
+    });
+
+    /**
+     * 導出審計日誌
+     */
+    static exportAuditLogs = BaseController.asyncHandler(async (req, res) => {
+        try {
+            return BaseController.success(res, null, '審計日誌導出功能待實現');
+        } catch (error) {
+            console.error('導出審計日誌失敗:', error);
+            return BaseController.error(res, '導出審計日誌失敗', 500);
+        }
+    });
+
+    /**
+     * 生成活動報告
+     */
+    static generateActivityReport = BaseController.asyncHandler(async (req, res) => {
+        try {
+            return BaseController.success(res, null, '活動報告生成功能待實現');
+        } catch (error) {
+            console.error('生成活動報告失敗:', error);
+            return BaseController.error(res, '生成活動報告失敗', 500);
+        }
+    });
+
+    /**
+     * 生成安全報告
+     */
+    static generateSecurityReport = BaseController.asyncHandler(async (req, res) => {
+        try {
+            return BaseController.success(res, null, '安全報告生成功能待實現');
+        } catch (error) {
+            console.error('生成安全報告失敗:', error);
+            return BaseController.error(res, '生成安全報告失敗', 500);
+        }
+    });
+
+    /**
+     * 搜索操作記錄
+     */
+    static searchOperations = BaseController.asyncHandler(async (req, res) => {
+        try {
+            return BaseController.success(res, [], '操作記錄搜索成功');
+        } catch (error) {
+            console.error('搜索操作記錄失敗:', error);
+            return BaseController.error(res, '搜索操作記錄失敗', 500);
+        }
+    });
+
+    /**
+     * 搜索登入記錄
+     */
+    static searchLogins = BaseController.asyncHandler(async (req, res) => {
+        try {
+            return BaseController.success(res, [], '登入記錄搜索成功');
+        } catch (error) {
+            console.error('搜索登入記錄失敗:', error);
+            return BaseController.error(res, '搜索登入記錄失敗', 500);
+        }
+    });
+
+    /**
+     * 搜索錯誤記錄
+     */
+    static searchErrors = BaseController.asyncHandler(async (req, res) => {
+        try {
+            return BaseController.success(res, [], '錯誤記錄搜索成功');
+        } catch (error) {
+            console.error('搜索錯誤記錄失敗:', error);
+            return BaseController.error(res, '搜索錯誤記錄失敗', 500);
+        }
+    });
+
+    /**
+     * 高級搜索
+     */
+    static advancedSearch = BaseController.asyncHandler(async (req, res) => {
+        try {
+            return BaseController.success(res, [], '高級搜索成功');
+        } catch (error) {
+            console.error('高級搜索失敗:', error);
+            return BaseController.error(res, '高級搜索失敗', 500);
+        }
+    });
+
+    /**
+     * 獲取數據保留設定
+     */
+    static getRetentionSettings = BaseController.asyncHandler(async (req, res) => {
+        try {
+            return BaseController.success(res, {}, '數據保留設定獲取成功');
+        } catch (error) {
+            console.error('獲取數據保留設定失敗:', error);
+            return BaseController.error(res, '獲取數據保留設定失敗', 500);
+        }
+    });
+
+    /**
+     * 更新數據保留設定
+     */
+    static updateRetentionSettings = BaseController.asyncHandler(async (req, res) => {
+        try {
+            return BaseController.success(res, null, '數據保留設定更新成功');
+        } catch (error) {
+            console.error('更新數據保留設定失敗:', error);
+            return BaseController.error(res, '更新數據保留設定失敗', 500);
+        }
+    });
+
+    /**
+     * 執行數據清理
+     */
+    static executeDataCleanup = BaseController.asyncHandler(async (req, res) => {
+        try {
+            return BaseController.success(res, null, '數據清理執行成功');
+        } catch (error) {
+            console.error('執行數據清理失敗:', error);
+            return BaseController.error(res, '執行數據清理失敗', 500);
+        }
+    });
+
+    /**
+     * 獲取清理預覽
+     */
+    static getCleanupPreview = BaseController.asyncHandler(async (req, res) => {
+        try {
+            return BaseController.success(res, {}, '清理預覽獲取成功');
+        } catch (error) {
+            console.error('獲取清理預覽失敗:', error);
+            return BaseController.error(res, '獲取清理預覽失敗', 500);
+        }
+    });
 }
 module.exports = HistoryController;

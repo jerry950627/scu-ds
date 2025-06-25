@@ -691,6 +691,24 @@ class ActivityController extends BaseController {
     });
 
     /**
+     * 獲取活動數量
+     */
+    static getCount = BaseController.asyncHandler(async (req, res) => {
+        try {
+            const result = await DatabaseHelper.get('SELECT COUNT(*) as count FROM event_plans');
+            
+            res.json({
+                success: true,
+                data: {
+                    count: result.count || 0
+                }
+            });
+        } catch (error) {
+            throw new ErrorHandler('獲取活動數量失敗', 500, error);
+        }
+    });
+
+    /**
      * 導出活動數據
      */
     static exportActivityData = BaseController.asyncHandler(async (req, res) => {
@@ -753,6 +771,546 @@ class ActivityController extends BaseController {
         } catch (error) {
             console.error('導出活動數據錯誤:', error);
             return BaseController.error(res, '導出活動數據失敗', 500);
+        }
+    });
+
+    /**
+     * 獲取企劃書列表
+     */
+    static getEvents = BaseController.asyncHandler(async (req, res) => {
+        try {
+            const query = `
+                SELECT ep.*, u.name as creator_name
+                FROM event_plans ep
+                LEFT JOIN users u ON ep.created_by = u.id
+                ORDER BY ep.created_at DESC
+            `;
+            
+            const events = await DatabaseHelper.all(query);
+            
+            return BaseController.success(res, events, '獲取企劃列表成功');
+        } catch (error) {
+            console.error('獲取企劃列表錯誤:', error);
+            return BaseController.error(res, '獲取企劃列表失敗', 500);
+        }
+    });
+
+    /**
+     * 創建企劃書
+     */
+    static createEvent = BaseController.asyncHandler(async (req, res) => {
+        const { title, description, event_date, location, max_participants } = req.body;
+        const userId = req.user?.id;
+        
+        if (!title) {
+            return BaseController.error(res, '企劃名稱為必填項', 400);
+        }
+        
+        try {
+            const proposalPath = req.file ? req.file.filename : null;
+            
+            const query = `
+                INSERT INTO event_plans (title, description, event_date, location, max_participants, proposal_path, created_by)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            `;
+            
+            const result = await DatabaseHelper.run(query, [
+                title,
+                description || null,
+                event_date || null,
+                location || null,
+                max_participants || null,
+                proposalPath,
+                userId
+            ]);
+            
+            await BaseController.logAction(req, 'EVENT_CREATED', `創建企劃: ${title}`, {
+                eventId: result.lastID,
+                title
+            });
+            
+            return BaseController.success(res, { id: result.lastID }, '企劃創建成功');
+        } catch (error) {
+            console.error('創建企劃錯誤:', error);
+            return BaseController.error(res, '創建企劃失敗', 500);
+        }
+    });
+
+    /**
+     * 獲取單個企劃書詳情
+     */
+    static getEvent = BaseController.asyncHandler(async (req, res) => {
+        const eventId = BaseController.validateId(req.params.id);
+        
+        if (!eventId) {
+            return BaseController.error(res, '無效的企劃 ID', 400);
+        }
+        
+        try {
+            const query = `
+                SELECT ep.*, u.name as creator_name
+                FROM event_plans ep
+                LEFT JOIN users u ON ep.created_by = u.id
+                WHERE ep.id = ?
+            `;
+            
+            const event = await DatabaseHelper.get(query, [eventId]);
+            
+            if (!event) {
+                return BaseController.error(res, '企劃不存在', 404);
+            }
+            
+            return BaseController.success(res, event, '獲取企劃詳情成功');
+        } catch (error) {
+            console.error('獲取企劃詳情錯誤:', error);
+            return BaseController.error(res, '獲取企劃詳情失敗', 500);
+        }
+    });
+
+    /**
+     * 更新企劃書
+     */
+    static updateEvent = BaseController.asyncHandler(async (req, res) => {
+        const eventId = BaseController.validateId(req.params.id);
+        const { title, description, event_date, location, max_participants } = req.body;
+        
+        if (!eventId) {
+            return BaseController.error(res, '無效的企劃 ID', 400);
+        }
+        
+        if (!title) {
+            return BaseController.error(res, '企劃名稱為必填項', 400);
+        }
+        
+        try {
+            // 檢查企劃是否存在
+            const existingEvent = await DatabaseHelper.get('SELECT * FROM event_plans WHERE id = ?', [eventId]);
+            if (!existingEvent) {
+                return BaseController.error(res, '企劃不存在', 404);
+            }
+            
+            let updateFields = [];
+            let updateValues = [];
+            
+            updateFields.push('title = ?', 'description = ?', 'event_date = ?', 'location = ?', 'max_participants = ?');
+            updateValues.push(title, description || null, event_date || null, location || null, max_participants || null);
+            
+            // 如果有新的檔案上傳
+            if (req.file) {
+                updateFields.push('proposal_path = ?');
+                updateValues.push(req.file.filename);
+            }
+            
+            updateValues.push(eventId);
+            
+            const query = `UPDATE event_plans SET ${updateFields.join(', ')} WHERE id = ?`;
+            await DatabaseHelper.run(query, updateValues);
+            
+            await BaseController.logAction(req, 'EVENT_UPDATED', `更新企劃: ${title}`, {
+                eventId,
+                title
+            });
+            
+            return BaseController.success(res, null, '企劃更新成功');
+        } catch (error) {
+            console.error('更新企劃錯誤:', error);
+            return BaseController.error(res, '更新企劃失敗', 500);
+        }
+    });
+
+    /**
+     * 刪除企劃書
+     */
+    static deleteEvent = BaseController.asyncHandler(async (req, res) => {
+        const eventId = BaseController.validateId(req.params.id);
+        
+        if (!eventId) {
+            return BaseController.error(res, '無效的企劃 ID', 400);
+        }
+        
+        try {
+            // 檢查企劃是否存在
+            const event = await DatabaseHelper.get('SELECT * FROM event_plans WHERE id = ?', [eventId]);
+            if (!event) {
+                return BaseController.error(res, '企劃不存在', 404);
+            }
+            
+            // 刪除企劃
+            await DatabaseHelper.run('DELETE FROM event_plans WHERE id = ?', [eventId]);
+            
+            // 如果有檔案，嘗試刪除檔案
+            if (event.proposal_path) {
+                try {
+                    const filePath = path.join(__dirname, '../uploads/activity', event.proposal_path);
+                    await fs.unlink(filePath);
+                } catch (fileError) {
+                    console.warn('刪除企劃檔案失敗:', fileError.message);
+                }
+            }
+            
+            await BaseController.logAction(req, 'EVENT_DELETED', `刪除企劃: ${event.title}`, {
+                eventId,
+                title: event.title
+            });
+            
+            return BaseController.success(res, null, '企劃刪除成功');
+        } catch (error) {
+            console.error('刪除企劃錯誤:', error);
+            return BaseController.error(res, '刪除企劃失敗', 500);
+        }
+    });
+
+    /**
+     * 查看企劃書檔案
+     */
+    static viewEvent = BaseController.asyncHandler(async (req, res) => {
+        const eventId = BaseController.validateId(req.params.id);
+        
+        if (!eventId) {
+            return BaseController.error(res, '無效的企劃 ID', 400);
+        }
+        
+        try {
+            const event = await DatabaseHelper.get('SELECT proposal_path FROM event_plans WHERE id = ?', [eventId]);
+            
+            if (!event || !event.proposal_path) {
+                return BaseController.error(res, '企劃檔案不存在', 404);
+            }
+            
+            const filePath = path.join(__dirname, '../uploads/activity', event.proposal_path);
+            
+            try {
+                await fs.access(filePath);
+                return res.sendFile(path.resolve(filePath));
+            } catch (fileError) {
+                return BaseController.error(res, '檔案不存在', 404);
+            }
+        } catch (error) {
+            console.error('查看企劃檔案錯誤:', error);
+            return BaseController.error(res, '查看企劃檔案失敗', 500);
+        }
+    });
+
+    /**
+     * 下載企劃書檔案
+     */
+    static downloadEvent = BaseController.asyncHandler(async (req, res) => {
+        const eventId = BaseController.validateId(req.params.id);
+        
+        if (!eventId) {
+            return BaseController.error(res, '無效的企劃 ID', 400);
+        }
+        
+        try {
+            const event = await DatabaseHelper.get('SELECT title, proposal_path FROM event_plans WHERE id = ?', [eventId]);
+            
+            if (!event || !event.proposal_path) {
+                return BaseController.error(res, '企劃檔案不存在', 404);
+            }
+            
+            const filePath = path.join(__dirname, '../uploads/activity', event.proposal_path);
+            
+            try {
+                await fs.access(filePath);
+                const ext = path.extname(event.proposal_path);
+                const downloadName = `${event.title}_企劃書${ext}`;
+                
+                res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(downloadName)}"`);
+                return res.sendFile(path.resolve(filePath));
+            } catch (fileError) {
+                return BaseController.error(res, '檔案不存在', 404);
+            }
+        } catch (error) {
+            console.error('下載企劃檔案錯誤:', error);
+            return BaseController.error(res, '下載企劃檔案失敗', 500);
+        }
+    });
+
+    /**
+     * 導出所有活動數據
+     */
+    static exportAllActivityData = BaseController.asyncHandler(async (req, res) => {
+        try {
+            const activities = await DatabaseHelper.all(`
+                SELECT ep.*, u.name as creator_name
+                FROM event_plans ep
+                LEFT JOIN users u ON ep.created_by = u.id
+                ORDER BY ep.created_at DESC
+            `, []);
+            
+            return BaseController.success(res, activities, '活動數據導出成功');
+        } catch (error) {
+            console.error('導出活動數據錯誤:', error);
+            return BaseController.error(res, '導出活動數據失敗', 500);
+        }
+    });
+
+    /**
+     * 獲取細流列表
+     */
+    static getDetails = BaseController.asyncHandler(async (req, res) => {
+        const { page, limit, offset } = BaseController.getPaginationParams(req);
+        const { field, order } = BaseController.getSortParams(req, ['id', 'title', 'created_at'], 'created_at');
+        const { search, conditions } = BaseController.getSearchParams(req, ['title', 'description']);
+
+        try {
+            let whereClause = '';
+            let params = [];
+
+            if (conditions.length > 0) {
+                whereClause = `WHERE (${conditions.join(' OR ')})`;
+                params = new Array(conditions.length).fill(search);
+            }
+
+            // 獲取總數
+            const countQuery = `SELECT COUNT(*) as total FROM activity_details ${whereClause}`;
+            const { total } = await DatabaseHelper.get(countQuery, params);
+
+            // 獲取細流列表
+            const query = `
+                SELECT ad.*, u.name as creator_name, ep.title as event_title
+                FROM activity_details ad
+                LEFT JOIN users u ON ad.created_by = u.id
+                LEFT JOIN event_plans ep ON ad.event_plan_id = ep.id
+                ${whereClause}
+                ORDER BY ${field} ${order}
+                LIMIT ? OFFSET ?
+            `;
+            
+            const details = await DatabaseHelper.all(query, [...params, limit, offset]);
+
+            return BaseController.paginated(res, details, { page, limit, total });
+
+        } catch (error) {
+            console.error('獲取細流列表錯誤:', error);
+            return BaseController.error(res, '獲取細流列表失敗', 500);
+        }
+    });
+
+    /**
+     * 創建細流
+     */
+    static createDetail = BaseController.asyncHandler(async (req, res) => {
+        const { title, description, event_plan_id, content } = req.body;
+        const userId = req.session.user.id;
+        const file = req.file;
+
+        try {
+            let filePath = null;
+            if (file) {
+                filePath = file.filename;
+            }
+
+            const sql = `
+                INSERT INTO activity_details (title, description, event_plan_id, content, file_path, created_by, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
+            `;
+            
+            const result = await DatabaseHelper.run(sql, [title, description, event_plan_id, content, filePath, userId]);
+            
+            await BaseController.logAction(req, 'DETAIL_CREATED', `創建細流: ${title}`, {
+                detailId: result.lastID,
+                title,
+                eventPlanId: event_plan_id
+            });
+            
+            return BaseController.success(res, { id: result.lastID }, '細流創建成功');
+        } catch (error) {
+            console.error('創建細流錯誤:', error);
+            return BaseController.error(res, '創建細流失敗', 500);
+        }
+    });
+
+    /**
+     * 獲取單個細流詳情
+     */
+    static getDetail = BaseController.asyncHandler(async (req, res) => {
+        const detailId = BaseController.validateId(req.params.id);
+        
+        if (!detailId) {
+            return BaseController.error(res, '無效的細流 ID', 400);
+        }
+
+        try {
+            const detail = await DatabaseHelper.get(`
+                SELECT ad.*, u.name as creator_name, ep.title as event_title
+                FROM activity_details ad
+                LEFT JOIN users u ON ad.created_by = u.id
+                LEFT JOIN event_plans ep ON ad.event_plan_id = ep.id
+                WHERE ad.id = ?
+            `, [detailId]);
+
+            if (!detail) {
+                return BaseController.error(res, '細流不存在', 404);
+            }
+
+            return BaseController.success(res, detail, '獲取細流詳情成功');
+
+        } catch (error) {
+            console.error('獲取細流詳情錯誤:', error);
+            return BaseController.error(res, '獲取細流詳情失敗', 500);
+        }
+    });
+
+    /**
+     * 更新細流
+     */
+    static updateDetail = BaseController.asyncHandler(async (req, res) => {
+        const detailId = BaseController.validateId(req.params.id);
+        const { title, description, content } = req.body;
+        const file = req.file;
+        
+        if (!detailId) {
+            return BaseController.error(res, '無效的細流 ID', 400);
+        }
+
+        try {
+            // 檢查細流是否存在
+            const existingDetail = await DatabaseHelper.get('SELECT * FROM activity_details WHERE id = ?', [detailId]);
+            
+            if (!existingDetail) {
+                return BaseController.error(res, '細流不存在', 404);
+            }
+
+            let filePath = existingDetail.file_path;
+            if (file) {
+                filePath = file.filename;
+                
+                // 刪除舊檔案
+                if (existingDetail.file_path) {
+                    const oldFilePath = path.join(__dirname, '../uploads/activity', existingDetail.file_path);
+                    try {
+                        await fs.unlink(oldFilePath);
+                    } catch (unlinkError) {
+                        console.warn('刪除舊檔案失敗:', unlinkError.message);
+                    }
+                }
+            }
+
+            const sql = `
+                UPDATE activity_details 
+                SET title = ?, description = ?, content = ?, file_path = ?, updated_at = datetime('now')
+                WHERE id = ?
+            `;
+            
+            await DatabaseHelper.run(sql, [title, description, content, filePath, detailId]);
+            
+            await BaseController.logAction(req, 'DETAIL_UPDATED', `更新細流: ${title}`, {
+                detailId,
+                title
+            });
+            
+            return BaseController.success(res, null, '細流更新成功');
+        } catch (error) {
+            console.error('更新細流錯誤:', error);
+            return BaseController.error(res, '更新細流失敗', 500);
+        }
+    });
+
+    /**
+     * 刪除細流
+     */
+    static deleteDetail = BaseController.asyncHandler(async (req, res) => {
+        const detailId = BaseController.validateId(req.params.id);
+        
+        if (!detailId) {
+            return BaseController.error(res, '無效的細流 ID', 400);
+        }
+
+        try {
+            const detail = await DatabaseHelper.get('SELECT * FROM activity_details WHERE id = ?', [detailId]);
+            
+            if (!detail) {
+                return BaseController.error(res, '細流不存在', 404);
+            }
+
+            // 刪除檔案
+            if (detail.file_path) {
+                const filePath = path.join(__dirname, '../uploads/activity', detail.file_path);
+                try {
+                    await fs.unlink(filePath);
+                } catch (unlinkError) {
+                    console.warn('刪除檔案失敗:', unlinkError.message);
+                }
+            }
+
+            await DatabaseHelper.run('DELETE FROM activity_details WHERE id = ?', [detailId]);
+            
+            await BaseController.logAction(req, 'DETAIL_DELETED', `刪除細流: ${detail.title}`, {
+                detailId,
+                title: detail.title
+            });
+            
+            return BaseController.success(res, null, '細流刪除成功');
+        } catch (error) {
+            console.error('刪除細流錯誤:', error);
+            return BaseController.error(res, '刪除細流失敗', 500);
+        }
+    });
+
+    /**
+     * 查看細流檔案
+     */
+    static viewDetail = BaseController.asyncHandler(async (req, res) => {
+        const detailId = BaseController.validateId(req.params.id);
+        
+        if (!detailId) {
+            return BaseController.error(res, '無效的細流 ID', 400);
+        }
+        
+        try {
+            const detail = await DatabaseHelper.get('SELECT file_path FROM activity_details WHERE id = ?', [detailId]);
+            
+            if (!detail || !detail.file_path) {
+                return BaseController.error(res, '細流檔案不存在', 404);
+            }
+            
+            const filePath = path.join(__dirname, '../uploads/activity', detail.file_path);
+            
+            try {
+                await fs.access(filePath);
+                return res.sendFile(path.resolve(filePath));
+            } catch (fileError) {
+                return BaseController.error(res, '檔案不存在', 404);
+            }
+        } catch (error) {
+            console.error('查看細流檔案錯誤:', error);
+            return BaseController.error(res, '查看細流檔案失敗', 500);
+        }
+    });
+
+    /**
+     * 下載細流檔案
+     */
+    static downloadDetail = BaseController.asyncHandler(async (req, res) => {
+        const detailId = BaseController.validateId(req.params.id);
+        
+        if (!detailId) {
+            return BaseController.error(res, '無效的細流 ID', 400);
+        }
+        
+        try {
+            const detail = await DatabaseHelper.get('SELECT title, file_path FROM activity_details WHERE id = ?', [detailId]);
+            
+            if (!detail || !detail.file_path) {
+                return BaseController.error(res, '細流檔案不存在', 404);
+            }
+            
+            const filePath = path.join(__dirname, '../uploads/activity', detail.file_path);
+            
+            try {
+                await fs.access(filePath);
+                const ext = path.extname(detail.file_path);
+                const downloadName = `${detail.title}_細流${ext}`;
+                
+                res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(downloadName)}"`);
+                return res.sendFile(path.resolve(filePath));
+            } catch (fileError) {
+                return BaseController.error(res, '檔案不存在', 404);
+            }
+        } catch (error) {
+            console.error('下載細流檔案錯誤:', error);
+            return BaseController.error(res, '下載細流檔案失敗', 500);
         }
     });
 }

@@ -1,7 +1,7 @@
 document.addEventListener('DOMContentLoaded', async () => {
     try {
         // server.js的requireAuth已確保用戶已認證，只需檢查管理員權限
-        const response = await ApiService.get('/api/auth/check');
+        const response = await ApiService.get('/auth/check');
         const data = await response.json();
         
         if (!data.user.isAdmin) {
@@ -155,7 +155,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             const role = document.getElementById('role').value;
 
             try {
-                await ApiService.post('/api/auth/register', { username, password, department_id, role });
+                await ApiService.post('/auth/register', { username, password, department_id, role });
                 ErrorHandler.showSuccess('使用者新增成功');
                 addUserForm.reset();
                 if(addUserModal) addUserModal.hide();

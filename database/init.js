@@ -12,7 +12,7 @@ const path = require('path');
 class DatabaseInitializer {
     constructor() {
         this.dbPath = process.env.DB_PATH || './database/scu_ds.db';
-        this.sqlPath = path.join(__dirname, 'init.sql');
+        this.sqlPath = path.join(__dirname, 'migrations', 'init.sql');
     }
 
     /**

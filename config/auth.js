@@ -34,12 +34,7 @@ const authConfig = {
         audience: 'scu-ds-users'
     },
     
-    // 登入限制
-    loginAttempts: {
-        maxAttempts: 5,
-        lockoutDuration: 15 * 60 * 1000, // 15分鐘
-        resetTime: 24 * 60 * 60 * 1000 // 24小時後重置
-    },
+    // 移除登入限制功能
     
     // 角色權限配置
     roles: {

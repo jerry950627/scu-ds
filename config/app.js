@@ -39,6 +39,6 @@ module.exports = {
     
     views: {
         engine: 'html',
-        directory: 'views'
+        directory: 'public/views'
     }
 };

@@ -72,102 +72,12 @@ const authConfig = {
         }
     },
     
-    // 兩步驗證配置
-    twoFactor: {
-        enabled: process.env.TWO_FACTOR_ENABLED === 'true',
-        issuer: 'SCU-DS',
-        window: 2, // 允許的時間窗口
-        tokenLength: 6,
-        backupCodesCount: 10
-    },
-    
-    // 登入嘗試限制
-    loginAttempts: {
-        maxAttempts: 5,
-        lockoutDuration: 15 * 60 * 1000, // 15分鐘
-        progressiveDelay: true,
-        trackByIp: true,
-        trackByUsername: true
-    }
+    // 移除兩步驗證和登入嘗試限制配置
 };
 
-// CORS 配置
-const corsConfig = {
-    origin: function (origin, callback) {
-        const allowedOrigins = [
-            'http://localhost:3000',
-            'http://localhost:3001',
-            'http://127.0.0.1:3000',
-            process.env.FRONTEND_URL
-        ].filter(Boolean);
-        
-        // 開發環境允許所有來源
-        if (process.env.NODE_ENV === 'development') {
-            return callback(null, true);
-        }
-        
-        // 生產環境檢查白名單
-        if (!origin || allowedOrigins.includes(origin)) {
-            callback(null, true);
-        } else {
-            callback(new Error('不允許的 CORS 來源'));
-        }
-    },
-    credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-    allowedHeaders: [
-        'Origin',
-        'X-Requested-With',
-        'Content-Type',
-        'Accept',
-        'Authorization',
-        'X-CSRF-Token',
-        'X-Requested-With'
-    ],
-    exposedHeaders: ['X-Total-Count', 'X-Page-Count'],
-    maxAge: 86400 // 24小時
-};
+// 移除CORS配置
 
-// CSP (Content Security Policy) 配置
-const cspConfig = {
-    directives: {
-        defaultSrc: ["'self'"],
-        scriptSrc: [
-            "'self'",
-            "'unsafe-inline'", // 開發環境可能需要
-            'https://cdn.jsdelivr.net',
-            'https://cdnjs.cloudflare.com'
-        ],
-        styleSrc: [
-            "'self'",
-            "'unsafe-inline'",
-            'https://fonts.googleapis.com',
-            'https://cdn.jsdelivr.net'
-        ],
-        fontSrc: [
-            "'self'",
-            'https://fonts.gstatic.com',
-            'data:'
-        ],
-        imgSrc: [
-            "'self'",
-            'data:',
-            'https:',
-            'blob:'
-        ],
-        connectSrc: [
-            "'self'",
-            'https://api.github.com' // 如果需要外部 API
-        ],
-        mediaSrc: ["'self'"],
-        objectSrc: ["'none'"],
-        frameSrc: ["'none'"],
-        baseUri: ["'self'"],
-        formAction: ["'self'"],
-        frameAncestors: ["'none'"]
-    },
-    reportOnly: process.env.NODE_ENV === 'development'
-};
+// 移除CSP配置
 
 // 速率限制配置
 const rateLimitConfig = {
@@ -302,39 +212,7 @@ const encryptionConfig = {
     }
 };
 
-// 安全標頭配置
-const securityHeadersConfig = {
-    // Helmet.js 配置
-    helmet: {
-        contentSecurityPolicy: cspConfig,
-        crossOriginEmbedderPolicy: false,
-        crossOriginOpenerPolicy: { policy: 'cross-origin' },
-        crossOriginResourcePolicy: { policy: 'cross-origin' },
-        dnsPrefetchControl: true,
-        frameguard: { action: 'deny' },
-        hidePoweredBy: true,
-        hsts: {
-            maxAge: 31536000,
-            includeSubDomains: true,
-            preload: true
-        },
-        ieNoOpen: true,
-        noSniff: true,
-        originAgentCluster: true,
-        permittedCrossDomainPolicies: false,
-        referrerPolicy: { policy: 'no-referrer' },
-        xssFilter: true
-    },
-    
-    // 自定義安全標頭
-    custom: {
-        'X-Frame-Options': 'DENY',
-        'X-Content-Type-Options': 'nosniff',
-        'X-XSS-Protection': '1; mode=block',
-        'Referrer-Policy': 'no-referrer',
-        'Permissions-Policy': 'geolocation=(), microphone=(), camera=()'
-    }
-};
+// 移除安全標頭配置
 
 // 輸入驗證配置
 const validationConfig = {
@@ -406,12 +284,9 @@ const auditConfig = {
 function getSecurityConfig(environment = process.env.NODE_ENV) {
     const config = {
         auth: authConfig,
-        cors: corsConfig,
-        csp: cspConfig,
         rateLimit: rateLimitConfig,
         upload: uploadConfig,
         encryption: encryptionConfig,
-        headers: securityHeadersConfig,
         validation: validationConfig,
         audit: auditConfig
     };
@@ -419,13 +294,10 @@ function getSecurityConfig(environment = process.env.NODE_ENV) {
     // 根據環境調整配置
     if (environment === 'development') {
         // 開發環境放寬一些限制
-        config.cors.origin = true;
-        config.csp.reportOnly = true;
         config.rateLimit.global.max = 10000;
     } else if (environment === 'production') {
         // 生產環境加強安全
         config.auth.session.cookie.secure = true;
-        config.headers.helmet.hsts.maxAge = 31536000;
     }
     
     return config;
@@ -452,10 +324,6 @@ function validateSecurityConfig(config) {
             if (!config.auth.session.cookie.secure) {
                 console.warn('⚠️  生產環境建議啟用 secure cookies');
             }
-            
-            if (config.cors.origin === true) {
-                console.warn('⚠️  生產環境不建議允許所有 CORS 來源');
-            }
         }
         
         return true;
@@ -469,12 +337,9 @@ module.exports = {
     getSecurityConfig,
     validateSecurityConfig,
     authConfig,
-    corsConfig,
-    cspConfig,
     rateLimitConfig,
     uploadConfig,
     encryptionConfig,
-    securityHeadersConfig,
     validationConfig,
     auditConfig
 };

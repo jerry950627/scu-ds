@@ -1,118 +1,52 @@
 /**
  * 認證路由
- * 處理用戶認證相關的所有路由
+ * 處理用戶登入、登出、註冊等認證相關功能
  */
 
 const express = require('express');
-const router = express.Router();
 const AuthController = require('../controllers/authController');
-const { requireAuth } = require('../middleware/auth');
-const { validateLogin, validateUser, validatePasswordReset } = require('../middleware/validation');
-const { singleUpload } = require('../utils/uploadConfig');
+const { redirectIfAuthenticated, logActivity, rateLimit, requireAuth, requireAdmin } = require('../middleware/auth');
+const router = express.Router();
+
+// 應用速率限制
+router.use(rateLimit(20, 15 * 60 * 1000)); // 15分鐘內最多20次請求
 
 // 用戶登入
 router.post('/login', 
-    validateLogin,
+    redirectIfAuthenticated,
+    logActivity('LOGIN_ATTEMPT', 'AUTH'),
     AuthController.login
 );
 
 // 用戶登出
 router.post('/logout', 
-    requireAuth,
+    logActivity('LOGOUT', 'AUTH'),
     AuthController.logout
 );
 
-// 用戶註冊（如果開放註冊）
-router.post('/register', 
-    validateUser,
+// 檢查登入狀態
+router.get('/check', AuthController.checkAuth);
+
+// 用戶註冊（僅管理員可用）
+router.post('/register',
+    requireAdmin,
+    logActivity('REGISTER_ATTEMPT', 'AUTH'),
     AuthController.register
 );
 
-// 獲取當前用戶信息
-router.get('/me', 
-    requireAuth,
-    AuthController.getCurrentUser
-);
-
-// 檢查登入狀態
-router.get('/check', 
-    AuthController.checkAuth
-);
-
-// 更新用戶資料
-router.put('/profile', 
-    requireAuth,
-    singleUpload('IMAGE', 'avatar'),
-    AuthController.updateProfile
-);
-
 // 修改密碼
-router.put('/password', 
+router.post('/change-password',
     requireAuth,
-    validatePasswordReset,
+    logActivity('CHANGE_PASSWORD', 'AUTH'),
     AuthController.changePassword
 );
 
-// 忘記密碼 - 發送重置郵件
-router.post('/forgot-password', 
-    AuthController.forgotPassword
-);
-
-// 重置密碼
-router.post('/reset-password', 
-    validatePasswordReset,
+// 重設密碼（僅管理員可用）
+router.post('/reset-password',
+    requireAdmin,
+    logActivity('RESET_PASSWORD', 'AUTH'),
     AuthController.resetPassword
 );
 
-// 驗證重置令牌
-router.get('/reset-password/:token', 
-    AuthController.verifyResetToken
-);
-
-// 檢查用戶名是否可用
-router.get('/check-username/:username', 
-    AuthController.checkUsername
-);
-
-// 檢查電子郵件是否可用
-router.get('/check-email/:email', 
-    AuthController.checkEmail
-);
-
-// 刷新會話
-router.post('/refresh', 
-    requireAuth,
-    AuthController.refreshSession
-);
-
-// 獲取用戶登入歷史
-router.get('/login-history', 
-    requireAuth,
-    AuthController.getLoginHistory
-);
-
-// 終止其他會話
-router.post('/terminate-sessions', 
-    requireAuth,
-    AuthController.terminateOtherSessions
-);
-
-// 啟用兩步驗證
-router.post('/2fa/enable', 
-    requireAuth,
-    AuthController.enableTwoFactor
-);
-
-// 禁用兩步驗證
-router.post('/2fa/disable', 
-    requireAuth,
-    AuthController.disableTwoFactor
-);
-
-// 驗證兩步驗證碼
-router.post('/2fa/verify', 
-    requireAuth,
-    AuthController.verifyTwoFactor
-);
 
 module.exports = router;

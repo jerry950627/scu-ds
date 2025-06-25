@@ -3,11 +3,12 @@ const AuthManager = {
     // 登入函數
     login: async function(username, password) {
         try {
-            const response = await fetch('/api/auth/login', {
+            const response = await fetch('/auth/login', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
+                credentials: 'include',
                 body: JSON.stringify({ username, password })
             });
 
@@ -19,8 +20,8 @@ const AuthManager = {
 
             // 檢查登入是否成功
             if (data.success) {
-                // 登入成功，重定向到儀表板
-                window.location.href = '/dashboard';
+                // 登入成功，使用後端返回的重定向位置
+                window.location.href = data.redirectUrl || '/dashboard';
             } else {
                 throw new Error(data.message || data.error || '登入失敗');
             }
@@ -36,8 +37,9 @@ const AuthManager = {
     // 登出函數
     logout: async function() {
         try {
-            const response = await fetch('/api/auth/logout', {
-                method: 'POST'
+            const response = await fetch('/auth/logout', {
+                method: 'POST',
+                credentials: 'include'
             });
             
             // 無論登出是否成功都重定向到首頁
@@ -51,7 +53,10 @@ const AuthManager = {
     // 檢查認證狀態
     checkAuth: async function() {
         try {
-            const response = await fetch('/api/auth/check');
+            const response = await fetch('/auth/check', {
+                method: 'GET',
+                credentials: 'include'
+            });
             if (!response.ok) {
                 return false;
             }

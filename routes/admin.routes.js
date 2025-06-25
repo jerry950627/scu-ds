@@ -6,31 +6,16 @@
 const express = require('express');
 const router = express.Router();
 const AdminController = require('../controllers/adminController');
-const { requireAuth, requireRole } = require('../middleware/auth');
-const { validateUser, validateId, validatePagination } = require('../middleware/validation');
+const { requireAdmin, logActivity, preventDuplicateSubmission } = require('../middleware/auth');
+const { validateId, validatePagination } = require('../middleware/validation');
 
 // 所有管理員路由都需要管理員權限
-router.use(requireAuth);
-router.use(requireRole(['admin']));
+router.use(requireAdmin);
 
-// 用戶管理
-// 獲取用戶列表
-router.get('/users', 
-    validatePagination,
-    AdminController.getUsers
-);
-
-// 獲取單個用戶詳情
-router.get('/users/:id', 
-    validateId,
-    AdminController.getUser
-);
-
-// 創建新用戶
-router.post('/users', 
-    validateUser,
-    AdminController.createUser
-);
+// 用戶管理路由
+router.get('/users', validatePagination, AdminController.getUsers);
+router.post('/users', logActivity('創建用戶'), preventDuplicateSubmission, AdminController.createUser);
+router.get('/users/:id', validateId, AdminController.getUser);
 
 // 更新用戶信息
 router.put('/users/:id', 
@@ -75,6 +60,35 @@ router.get('/stats/users',
 // 獲取活動統計
 router.get('/stats/activities', 
     AdminController.getActivityStats
+);
+
+// 部門管理
+// 獲取部門列表
+router.get('/departments', 
+    AdminController.getDepartments
+);
+
+// 學年度管理
+// 獲取學年度列表
+router.get('/years', 
+    AdminController.getYears
+);
+
+// 創建新學年度
+router.post('/years', 
+    AdminController.createYear
+);
+
+// 獲取用戶部門角色
+router.get('/users/:id/department-role', 
+    validateId,
+    AdminController.getUserDepartmentRole
+);
+
+// 更新用戶部門角色
+router.put('/users/:id/department-role', 
+    validateId,
+    AdminController.updateUserDepartmentRole
 );
 
 // 獲取財務統計

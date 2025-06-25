@@ -50,12 +50,11 @@
 - **Node.js** - 服務器運行環境
 - **Express.js** - Web 應用框架
 - **SQLite3** - 輕量級數據庫
-- **bcrypt** - 密碼加密
 - **multer** - 文件上傳處理
 - **express-session** - 會話管理
 
 ### 前端技術
-- **EJS** - 模板引擎
+- **靜態HTML** - 前端頁面
 - **HTML5/CSS3** - 用戶界面
 - **JavaScript** - 前端交互
 - **Bootstrap** - 響應式設計框架
@@ -159,7 +158,7 @@ scu_ds/
 │   ├── dbHelper.js    # 數據庫輔助工具
 │   ├── errorHandler.js # 錯誤處理工具
 │   └── uploadConfig.js # 文件上傳配置
-├── views/             # EJS 模板文件
+├── public/views/      # 靜態HTML文件
 ├── server.js          # 主服務器文件
 └── package.json       # 項目配置
 ```
@@ -189,7 +188,7 @@ npm run backup-db
 #### 認證接口
 - `POST /api/auth/login` - 用戶登入
 - `POST /api/auth/logout` - 用戶登出
-- `GET /api/auth/check` - 檢查登入狀態
+- `GET /auth/check` - 檢查登入狀態
 - `POST /api/auth/register` - 用戶註冊
 
 #### 財務接口

@@ -73,20 +73,10 @@ class GlobalErrorHandler {
             // API 請求返回 JSON 錯誤
             res.status(statusCode).json(errorResponse);
         } else {
-            // 網頁請求重導向到錯誤頁面或返回錯誤頁面
-            if (statusCode === 404) {
-                res.status(404).render('error', {
-                    title: '頁面不存在',
-                    message: '您要找的頁面不存在',
-                    statusCode: 404
-                });
-            } else {
-                res.status(statusCode).render('error', {
-                    title: '系統錯誤',
-                    message: message,
-                    statusCode: statusCode
-                });
-            }
+            // 網頁請求發送靜態錯誤頁面
+            const path = require('path');
+            const errorPagePath = path.join(__dirname, '../public/pages/error.html');
+            res.status(statusCode).sendFile(errorPagePath);
         }
     }
 

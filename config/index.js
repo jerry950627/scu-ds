@@ -13,7 +13,7 @@ const databaseConfig = require('./database');
 const { getSecurityConfig, validateSecurityConfig } = require('./security');
 const { getCacheConfig, validateCacheConfig } = require('./cache');
 const { getLogConfig, validateLogConfig } = require('./logging');
-const { getValidationConfig } = require('./validation');
+// validation 配置已移至 middleware/validation.js
 
 /**
  * 獲取完整的應用配置
@@ -28,7 +28,7 @@ function getConfig(environment = process.env.NODE_ENV || 'development') {
         security: getSecurityConfig(environment),
         cache: getCacheConfig(),
         logging: getLogConfig(environment),
-        validation: getValidationConfig()
+        // validation 已移至 middleware
     };
 
     // 根據環境調整配置

@@ -132,6 +132,25 @@ CREATE TABLE IF NOT EXISTS pr_activities (
     created_by INTEGER,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    deleted_at DATETIME,
+    FOREIGN KEY (created_by) REFERENCES users(id)
+);
+
+-- 公關部廠商表
+CREATE TABLE IF NOT EXISTS pr_vendors (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name VARCHAR(200) NOT NULL,
+    contact_person VARCHAR(100) NOT NULL,
+    phone VARCHAR(20),
+    email VARCHAR(100),
+    address TEXT,
+    description TEXT,
+    category VARCHAR(50),
+    status VARCHAR(20) DEFAULT 'active' CHECK (status IN ('active', 'inactive')),
+    created_by INTEGER,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    deleted_at DATETIME,
     FOREIGN KEY (created_by) REFERENCES users(id)
 );
 
@@ -196,6 +215,9 @@ CREATE INDEX IF NOT EXISTS idx_system_logs_user_id ON system_logs(user_id);
 CREATE INDEX IF NOT EXISTS idx_system_logs_created_at ON system_logs(created_at);
 CREATE INDEX IF NOT EXISTS idx_notifications_user_id ON notifications(user_id);
 CREATE INDEX IF NOT EXISTS idx_notifications_is_read ON notifications(is_read);
+CREATE INDEX IF NOT EXISTS idx_pr_vendors_name ON pr_vendors(name);
+CREATE INDEX IF NOT EXISTS idx_pr_vendors_category ON pr_vendors(category);
+CREATE INDEX IF NOT EXISTS idx_pr_vendors_status ON pr_vendors(status);
 
 -- 創建觸發器以自動更新 updated_at 欄位
 CREATE TRIGGER IF NOT EXISTS update_users_timestamp 
@@ -238,6 +260,12 @@ CREATE TRIGGER IF NOT EXISTS update_pr_activities_timestamp
     AFTER UPDATE ON pr_activities
     BEGIN
         UPDATE pr_activities SET updated_at = CURRENT_TIMESTAMP WHERE id = NEW.id;
+    END;
+
+CREATE TRIGGER IF NOT EXISTS update_pr_vendors_timestamp 
+    AFTER UPDATE ON pr_vendors
+    BEGIN
+        UPDATE pr_vendors SET updated_at = CURRENT_TIMESTAMP WHERE id = NEW.id;
     END;
 
 CREATE TRIGGER IF NOT EXISTS update_meeting_records_timestamp 

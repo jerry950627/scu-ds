@@ -13,6 +13,16 @@ function setupRoutes(app) {
     console.log('🛣️  正在配置路由...');
     
     try {
+        // 處理Chrome DevTools和其他well-known路徑
+        app.get('/.well-known/*', (req, res) => {
+            res.status(404).json({ error: 'Not Found' });
+        });
+        
+        // 認證路由（直接掛載到根路徑）
+        const authRoutes = require('../routes/auth.routes');
+        app.use('/auth', authRoutes);
+        console.log('✅ 認證路由配置完成');
+        
         // API 路由（統一前綴 /api）
         const apiRoutes = require('../routes/api');
         app.use('/api', apiRoutes);
