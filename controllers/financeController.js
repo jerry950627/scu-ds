@@ -134,10 +134,13 @@ class FinanceController extends BaseController {
         const { type, amount, description, category, date, notes } = req.body;
         const userId = req.session.user.id;
 
+        console.log('=== 創建財務記錄開始 ===');
         console.log('收到創建財務記錄請求:', req.body);
         console.log('用戶ID:', userId);
+        console.log('Session:', req.session?.user ? '有效' : '無效');
+        console.log('請求來源:', req.ip);
 
-        // 驗證必要欄位
+        // 基本驗證（驗證中間件已處理大部分，這裡做額外檢查）
         if (!type || !amount || !date) {
             console.log('缺少必要欄位:', { type, amount, date });
             return BaseController.error(res, '類型、金額和日期為必填欄位', 400);
@@ -145,42 +148,72 @@ class FinanceController extends BaseController {
 
         // 驗證類型
         if (!['income', 'expense'].includes(type)) {
+            console.log('無效的記錄類型:', type);
             return BaseController.error(res, '無效的記錄類型', 400);
         }
 
         // 驗證金額
         const numAmount = parseFloat(amount);
         if (isNaN(numAmount) || numAmount <= 0) {
+            console.log('無效的金額:', amount, numAmount);
             return BaseController.error(res, '金額必須是大於0的數字', 400);
         }
 
+        // 驗證日期格式
+        const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+        if (!dateRegex.test(date)) {
+            console.log('無效的日期格式:', date);
+            return BaseController.error(res, '日期格式不正確，請使用 YYYY-MM-DD 格式', 400);
+        }
+
         try {
+            // 確保必要的資料都有預設值
+            const finalDescription = description || '無說明';
+            const finalCategory = category || '其他';
+            const finalNotes = notes || '';
+            
+            console.log('準備插入數據庫:', {
+                description: finalDescription,
+                amount: numAmount,
+                type,
+                category: finalCategory,
+                date,
+                userId
+            });
+
             const result = await DatabaseHelper.run(`
                 INSERT INTO finance_records (title, description, amount, type, category, date, notes, created_by, created_at)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
-            `, [description || '無標題', description || '', numAmount, type, category || '其他', date, notes || '', userId]);
+            `, [finalDescription, finalDescription, numAmount, type, finalCategory, date, finalNotes, userId]);
 
             console.log('財務記錄創建成功:', result);
+            console.log('新記錄ID:', result.lastID);
 
             try {
-                await BaseController.logAction(req, 'FINANCE_RECORD_CREATED', `創建財務記錄: ${description}`, {
+                await BaseController.logAction(req, 'FINANCE_RECORD_CREATED', `創建財務記錄: ${finalDescription}`, {
                     recordId: result.lastID,
                     type,
                     amount: numAmount
                 });
+                console.log('系統日誌記錄成功');
             } catch (logError) {
                 console.warn('記錄日誌失敗:', logError.message);
             }
 
-            return BaseController.success(res, {
+            const responseData = {
                 id: result.lastID,
                 type,
                 amount: numAmount,
-                description: description || '',
-                category: category || '其他',
+                description: finalDescription,
+                category: finalCategory,
                 date,
-                notes: notes || ''
-            }, '財務記錄創建成功', 201);
+                notes: finalNotes
+            };
+            
+            console.log('準備回傳響應:', responseData);
+            console.log('=== 創建財務記錄完成 ===');
+
+            return BaseController.success(res, responseData, '財務記錄創建成功', 201);
 
         } catch (error) {
             console.error('創建財務記錄錯誤:', error);
@@ -642,16 +675,14 @@ class FinanceController extends BaseController {
             
             const balance = totalIncome.total - totalExpense.total;
             
-            res.json({
-                success: true,
-                data: {
-                    totalIncome: totalIncome.total,
-                    totalExpense: totalExpense.total,
-                    balance: balance
-                }
-            });
+            return BaseController.success(res, {
+                totalIncome: totalIncome.total,
+                totalExpense: totalExpense.total,
+                balance: balance
+            }, '獲取財務概覽成功');
         } catch (error) {
-            throw new ErrorHandler('獲取財務概覽失敗', 500, error);
+            console.error('獲取財務概覽錯誤:', error);
+            return BaseController.error(res, '獲取財務概覽失敗', 500);
         }
     });
 

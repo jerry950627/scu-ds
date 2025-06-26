@@ -85,33 +85,46 @@ document.addEventListener('DOMContentLoaded', function() {
         try {
             const response = await fetch(`/api/finance/records?sort=${sortOrder}`);
             if (!response.ok) throw new Error('無法獲取財務記錄');
-            const records = await response.json();
+            const result = await response.json();
+            
+            console.log('API 回應結構:', result);
+            
+            // 處理分頁格式的回應
+            const records = result.data?.records || result.records || result.data || [];
+            
+            console.log('解析出的記錄:', records);
+            
             financeRecordsTableBody.innerHTML = '';
-            records.forEach(record => {
-                const row = financeRecordsTableBody.insertRow();
-                const recordDate = new Date(record.date).toLocaleDateString();
-                const amountClass = record.type === 'income' ? 'text-success' : 'text-danger';
-                const amountPrefix = record.type === 'income' ? '+' : '-';
-                row.innerHTML = `
-                    <td>${record.id}</td>
-                    <td>${recordDate}</td>
-                    <td><span class="badge-modern ${record.type === 'income' ? 'btn-success-modern' : 'btn-danger-modern'}" style="font-size: 0.75rem; padding: 0.25rem 0.5rem;">${record.type === 'income' ? '收入' : '支出'}</span></td>
-                    <td class="${amountClass}" style="font-weight: 600;">${amountPrefix} ${parseFloat(record.amount).toFixed(2)}</td>
-                    <td>${record.description || 'N/A'}</td>
-                    <td>${record.createdByUsername || 'N/A'}</td>
-                    <td>
-                        <button class="btn-info-modern btn-sm me-1 view-finance-btn" data-id="${record.id}" style="font-size: 0.75rem; padding: 0.25rem 0.5rem;">
-                            <i class="fas fa-eye me-1"></i>查看
-                        </button>
-                        <button class="btn-warning-modern btn-sm me-1 edit-finance-btn" data-id="${record.id}" style="font-size: 0.75rem; padding: 0.25rem 0.5rem;">
-                            <i class="fas fa-edit me-1"></i>編輯
-                        </button>
-                        <button class="btn-danger-modern btn-sm delete-finance-btn" data-id="${record.id}" style="font-size: 0.75rem; padding: 0.25rem 0.5rem;">
-                            <i class="fas fa-trash me-1"></i>刪除
-                        </button>
-                    </td>
-                `;
-            });
+            if (Array.isArray(records)) {
+                records.forEach(record => {
+                    const row = financeRecordsTableBody.insertRow();
+                    const recordDate = new Date(record.date).toLocaleDateString();
+                    const amountClass = record.type === 'income' ? 'text-success' : 'text-danger';
+                    const amountPrefix = record.type === 'income' ? '+' : '-';
+                    row.innerHTML = `
+                        <td>${record.id}</td>
+                        <td>${recordDate}</td>
+                        <td><span class="badge-modern ${record.type === 'income' ? 'btn-success-modern' : 'btn-danger-modern'}" style="font-size: 0.75rem; padding: 0.25rem 0.5rem;">${record.type === 'income' ? '收入' : '支出'}</span></td>
+                        <td class="${amountClass}" style="font-weight: 600;">${amountPrefix} ${parseFloat(record.amount).toFixed(2)}</td>
+                        <td>${record.description || 'N/A'}</td>
+                        <td>${record.creator_name || record.createdByUsername || 'N/A'}</td>
+                        <td>
+                            <button class="btn-info-modern btn-sm me-1 view-finance-btn" data-id="${record.id}" style="font-size: 0.75rem; padding: 0.25rem 0.5rem;">
+                                <i class="fas fa-eye me-1"></i>查看
+                            </button>
+                            <button class="btn-warning-modern btn-sm me-1 edit-finance-btn" data-id="${record.id}" style="font-size: 0.75rem; padding: 0.25rem 0.5rem;">
+                                <i class="fas fa-edit me-1"></i>編輯
+                            </button>
+                            <button class="btn-danger-modern btn-sm delete-finance-btn" data-id="${record.id}" style="font-size: 0.75rem; padding: 0.25rem 0.5rem;">
+                                <i class="fas fa-trash me-1"></i>刪除
+                            </button>
+                        </td>
+                    `;
+                });
+            } else {
+                console.error('記錄格式錯誤，期待陣列但得到:', typeof records, records);
+                financeRecordsTableBody.innerHTML = '<tr><td colspan="6" class="text-center text-muted">無法載入財務記錄 - 資料格式錯誤</td></tr>';
+            }
             attachFinanceActionListeners();
             loadFinanceSummary(); // 每次載入記錄後更新摘要
         } catch (error) {
@@ -202,6 +215,13 @@ document.addEventListener('DOMContentLoaded', function() {
         function createRecordEntry(index) {
             const entryDiv = document.createElement('div');
             entryDiv.classList.add('finance-record-entry', 'mb-3', 'p-3');
+            entryDiv.style.cssText = `
+                border: 2px solid rgba(233, 30, 99, 0.1);
+                border-radius: 15px;
+                background: rgba(255, 255, 255, 0.8);
+                box-shadow: 0 4px 15px rgba(233, 30, 99, 0.1);
+                transition: all 0.3s ease;
+            `;
             entryDiv.innerHTML = `
                 <h5 style="color: var(--gray-800); font-weight: 600; margin-bottom: 1rem;">
                     <i class="fas fa-receipt me-2"></i>記錄 ${index + 1}
@@ -227,14 +247,47 @@ document.addEventListener('DOMContentLoaded', function() {
                 </div>
                 <div class="mb-3">
                     <label for="addFinanceReceipt_${index}" class="form-label-modern">收據/發票 (選填)</label>
-                    <input type="file" class="form-control-modern" id="addFinanceReceipt_${index}" name="receipts">
+                    <input type="file" class="form-control form-control-modern" id="addFinanceReceipt_${index}" name="receipts">
                 </div>
                 <div class="text-end">
-                    <button type="button" class="btn-danger-modern btn-sm remove-record-btn" onclick="removeRecordEntry(this)">
+                    <button type="button" class="btn btn-outline-danger btn-sm remove-record-btn" onclick="removeRecordEntry(this);" style="background: linear-gradient(135deg, #ef4444, #dc2626); color: white; border: none; border-radius: 25px; padding: 8px 16px; font-weight: 600; box-shadow: 0 4px 15px rgba(239, 68, 68, 0.3); transition: all 0.3s ease;">
                         <i class="fas fa-times me-1"></i>移除此記錄
                     </button>
                 </div>
             `;
+            
+            // 使用 setTimeout 確保 DOM 元素完全創建後再添加事件
+            setTimeout(() => {
+                // 為記錄條目添加懸停效果
+                entryDiv.addEventListener('mouseenter', () => {
+                    entryDiv.style.transform = 'translateY(-2px)';
+                    entryDiv.style.boxShadow = '0 8px 25px rgba(233, 30, 99, 0.2)';
+                    entryDiv.style.borderColor = 'rgba(233, 30, 99, 0.3)';
+                });
+                
+                entryDiv.addEventListener('mouseleave', () => {
+                    entryDiv.style.transform = 'translateY(0)';
+                    entryDiv.style.boxShadow = '0 4px 15px rgba(233, 30, 99, 0.1)';
+                    entryDiv.style.borderColor = 'rgba(233, 30, 99, 0.1)';
+                });
+                
+                // 為移除按鈕添加懸停效果
+                const removeBtn = entryDiv.querySelector('.remove-record-btn');
+                if (removeBtn) {
+                    removeBtn.addEventListener('mouseenter', () => {
+                        removeBtn.style.transform = 'translateY(-2px)';
+                        removeBtn.style.boxShadow = '0 8px 25px rgba(239, 68, 68, 0.4)';
+                        removeBtn.style.background = 'linear-gradient(135deg, #dc2626, #b91c1c)';
+                    });
+                    
+                    removeBtn.addEventListener('mouseleave', () => {
+                        removeBtn.style.transform = 'translateY(0)';
+                        removeBtn.style.boxShadow = '0 4px 15px rgba(239, 68, 68, 0.3)';
+                        removeBtn.style.background = 'linear-gradient(135deg, #ef4444, #dc2626)';
+                    });
+                }
+            }, 0);
+            
             return entryDiv;
         }
 
@@ -250,18 +303,46 @@ document.addEventListener('DOMContentLoaded', function() {
                 showMessage('warning', '至少需要保留一個記錄條目');
             }
         };
+        
+
 
         if (recordsContainer && addMoreRecordButton) {
             // 初始創建一個記錄條目
-            recordsContainer.appendChild(createRecordEntry(recordIndex));
+            const initialEntry = createRecordEntry(recordIndex);
+            recordsContainer.appendChild(initialEntry);
             recordIndex++;
 
             // 新增更多記錄按鈕事件
             addMoreRecordButton.addEventListener('click', () => {
-                recordsContainer.appendChild(createRecordEntry(recordIndex));
+                const newEntry = createRecordEntry(recordIndex);
+                recordsContainer.appendChild(newEntry);
                 recordIndex++;
                 showMessage('info', '已新增記錄條目');
             });
+            
+            // 設置新增更多記錄按鈕樣式
+            if (addMoreRecordButton) {
+                addMoreRecordButton.style.cssText = `
+                    background: linear-gradient(135deg, #06b6d4, #0891b2);
+                    color: white;
+                    border: none;
+                    border-radius: 25px;
+                    padding: 12px 25px;
+                    font-weight: 600;
+                    box-shadow: 0 4px 15px rgba(6, 182, 212, 0.3);
+                    transition: all 0.3s ease;
+                `;
+                
+                addMoreRecordButton.addEventListener('mouseenter', () => {
+                    addMoreRecordButton.style.transform = 'translateY(-2px)';
+                    addMoreRecordButton.style.boxShadow = '0 8px 25px rgba(6, 182, 212, 0.4)';
+                });
+                
+                addMoreRecordButton.addEventListener('mouseleave', () => {
+                    addMoreRecordButton.style.transform = 'translateY(0)';
+                    addMoreRecordButton.style.boxShadow = '0 4px 15px rgba(6, 182, 212, 0.3)';
+                });
+            }
         }
 
         // 清除財務記錄表單
@@ -271,10 +352,62 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (confirm('確定要清除所有已填寫的資料嗎？')) {
                     recordsContainer.innerHTML = '';
                     recordIndex = 0;
-                    recordsContainer.appendChild(createRecordEntry(recordIndex));
+                    const newEntry = createRecordEntry(recordIndex);
+                    recordsContainer.appendChild(newEntry);
                     recordIndex++;
                     showMessage('info', '已清除所有資料');
                 }
+            });
+            
+            // 設置清除資料按鈕樣式
+            clearFinanceRecords.style.cssText = `
+                background: linear-gradient(135deg, #f59e0b, #d97706);
+                color: white;
+                border: none;
+                border-radius: 25px;
+                padding: 12px 25px;
+                font-weight: 600;
+                box-shadow: 0 4px 15px rgba(245, 158, 11, 0.3);
+                transition: all 0.3s ease;
+            `;
+            
+            clearFinanceRecords.addEventListener('mouseenter', () => {
+                clearFinanceRecords.style.transform = 'translateY(-2px)';
+                clearFinanceRecords.style.boxShadow = '0 8px 25px rgba(245, 158, 11, 0.4)';
+                clearFinanceRecords.style.background = 'linear-gradient(135deg, #d97706, #b45309)';
+            });
+            
+            clearFinanceRecords.addEventListener('mouseleave', () => {
+                clearFinanceRecords.style.transform = 'translateY(0)';
+                clearFinanceRecords.style.boxShadow = '0 4px 15px rgba(245, 158, 11, 0.3)';
+                clearFinanceRecords.style.background = 'linear-gradient(135deg, #f59e0b, #d97706)';
+            });
+        }
+        
+        // 設置儲存紀錄按鈕樣式
+        const saveFinanceRecords = document.getElementById('saveFinanceRecords');
+        if (saveFinanceRecords) {
+            saveFinanceRecords.style.cssText = `
+                background: linear-gradient(135deg, #e91e63, #ad1457);
+                color: white;
+                border: none;
+                border-radius: 25px;
+                padding: 12px 25px;
+                font-weight: 600;
+                box-shadow: 0 4px 15px rgba(233, 30, 99, 0.3);
+                transition: all 0.3s ease;
+            `;
+            
+            saveFinanceRecords.addEventListener('mouseenter', () => {
+                saveFinanceRecords.style.transform = 'translateY(-2px)';
+                saveFinanceRecords.style.boxShadow = '0 8px 25px rgba(233, 30, 99, 0.4)';
+                saveFinanceRecords.style.background = 'linear-gradient(135deg, #ad1457, #880e4f)';
+            });
+            
+            saveFinanceRecords.addEventListener('mouseleave', () => {
+                saveFinanceRecords.style.transform = 'translateY(0)';
+                saveFinanceRecords.style.boxShadow = '0 4px 15px rgba(233, 30, 99, 0.3)';
+                saveFinanceRecords.style.background = 'linear-gradient(135deg, #e91e63, #ad1457)';
             });
         }
 
@@ -306,9 +439,32 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
 
+            // 檢查記錄資料的完整性
+            for (let i = 0; i < records.length; i++) {
+                const record = records[i];
+                if (!record.type || !record.amount || !record.date) {
+                    showMessage('error', `記錄 ${i + 1} 缺少必要資料：類型、金額和日期為必填`);
+                    return;
+                }
+                
+                const amount = parseFloat(record.amount);
+                if (isNaN(amount) || amount <= 0) {
+                    showMessage('error', `記錄 ${i + 1} 的金額無效：必須是大於0的數字`);
+                    return;
+                }
+                
+                // 檢查日期格式
+                const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+                if (!dateRegex.test(record.date)) {
+                    showMessage('error', `記錄 ${i + 1} 的日期格式無效：請選擇正確的日期`);
+                    return;
+                }
+            }
+
             // 逐筆新增記錄 (修正為支援單筆新增)
             try {
                 console.log('準備新增記錄:', records);
+                console.log('記錄驗證通過，開始提交...');
                 let successCount = 0;
                 for (const record of records) {
                     const formData = new FormData();
@@ -318,20 +474,39 @@ document.addEventListener('DOMContentLoaded', function() {
                     formData.append('description', record.description);
 
                     console.log('發送請求到 /api/finance/records', record);
+                    console.log('FormData 內容:', {
+                        type: record.type,
+                        amount: record.amount,
+                        date: record.date,
+                        description: record.description
+                    });
+                    
                     const response = await fetch('/api/finance/records', {
                         method: 'POST',
                         body: formData,
+                        headers: {
+                            // 不要設置 Content-Type，讓瀏覽器自動設置
+                        }
                     });
                     
                     console.log('響應狀態:', response.status);
+                    console.log('響應 headers:', Object.fromEntries(response.headers.entries()));
+                    
                     if (response.ok) {
                         successCount++;
                         const result = await response.json();
                         console.log('成功響應:', result);
                     } else {
-                        const result = await response.json();
-                        console.error('失敗響應:', result);
-                        showMessage('error', `<i class="fas fa-exclamation-triangle me-2"></i>新增記錄失敗: ${result.error || result.message || '未知錯誤'}`);
+                        const responseText = await response.text();
+                        console.error('失敗響應狀態:', response.status);
+                        console.error('失敗響應內容:', responseText);
+                        
+                        try {
+                            const result = JSON.parse(responseText);
+                            showMessage('error', `<i class="fas fa-exclamation-triangle me-2"></i>新增記錄失敗: ${result.error || result.message || '未知錯誤'}`);
+                        } catch (jsonError) {
+                            showMessage('error', `<i class="fas fa-exclamation-triangle me-2"></i>新增記錄失敗: 服務器錯誤 (${response.status})`);
+                        }
                     }
                 }
 

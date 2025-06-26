@@ -12,7 +12,7 @@ const { singleUpload } = require('../utils/uploadConfig');
 
 // 獲取財務記錄列表
 router.get('/', 
-    requireRole(['admin', 'finance', 'secretary']),
+    requireRole(['admin', 'finance', 'secretary', 'member']),
     validatePagination,
     validateDateRange,
     FinanceController.getRecords
@@ -48,7 +48,7 @@ router.delete('/:id',
 
 // 獲取財務記錄列表 (別名路由)
 router.get('/records', 
-    requireRole(['admin', 'finance', 'secretary']),
+    requireRole(['admin', 'finance', 'secretary', 'member']),
     validatePagination,
     validateDateRange,
     FinanceController.getRecords
@@ -66,7 +66,7 @@ router.post('/records',
 
 // 獲取單個財務記錄詳情
 router.get('/:id', 
-    requireRole(['admin', 'finance', 'secretary']),
+    requireRole(['admin', 'finance', 'secretary', 'member']),
     validateId,
     FinanceController.getRecord
 );
@@ -94,7 +94,7 @@ router.get('/export/pdf',
 
 // 獲取財務摘要
 router.get('/summary', 
-    requireRole(['admin', 'finance', 'secretary']),
+    requireRole(['admin', 'finance', 'secretary', 'member']),
     FinanceController.getFinanceOverview
 );
 

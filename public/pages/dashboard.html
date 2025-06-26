@@ -18,7 +18,7 @@
       <a href="/add-member" class="btn btn-success btn-lg">
         <i class="fas fa-user-plus me-2"></i>新增成員
       </a>
-    </div>
+      </div>
 
     <!-- 導航按鈕 -->
     <div class="d-flex justify-content-center flex-wrap gap-3 mb-4">
@@ -44,7 +44,7 @@
           <div class="card-body">
             <h5 class="card-title">💰 當前餘額</h5>
             <h2 class="text-success" id="totalBalance">NT$ 0</h2>
-          </div>
+        </div>
         </div>
       </div>
     </div>
@@ -147,8 +147,8 @@
               <button class="btn btn-success" onclick="showAddMemberModal()">新增成員</button>
             </div>
           </div>
-        </div>
-        <div class="col-md-6 col-lg-4">
+      </div>
+      <div class="col-md-6 col-lg-4">
           <div class="card h-100 shadow-sm">
             <div class="card-body text-center">
               <i class="fas fa-users fa-3x text-primary mb-3"></i>
@@ -609,7 +609,7 @@
           method: 'GET',
           credentials: 'include'
         });
-
+        
         const result = await response.json();
 
         if (response.ok && result.success) {

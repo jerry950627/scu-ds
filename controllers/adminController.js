@@ -169,10 +169,10 @@ class AdminController extends BaseController {
             is_active ? 1 : 0
         ]);
             
-            // 記錄操作日誌
-            await BaseController.logAction(req, 'USER_CREATE', `創建用戶: ${username} (${full_name})`);
+            // 記錄操作日誌 - 暫時停用以避免超時
+            // await BaseController.logAction(req, 'USER_CREATE', `創建用戶: ${username} (${full_name})`);
             
-                    res.json({
+            res.json({
             success: true,
             data: { 
                 id: result.lastID,

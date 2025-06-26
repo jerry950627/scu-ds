@@ -384,8 +384,10 @@ module.exports.validatePasswordReset = ValidationMiddleware.combine([
 ]);
 
 module.exports.validateFinance = ValidationMiddleware.combine([
-    ValidationMiddleware.validateRequired(['type', 'amount', 'description']),
-    ValidationMiddleware.validateNumberRange('amount', 0)
+    ValidationMiddleware.validateRequired(['type', 'amount', 'date']),
+    ValidationMiddleware.validateNumberRange('amount', 0.01), // 至少0.01
+    ValidationMiddleware.validateDate('date'),
+    ValidationMiddleware.sanitizeInput(['description', 'category', 'notes'])
 ]);
 
 module.exports.validateActivity = ValidationMiddleware.combine([

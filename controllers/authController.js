@@ -132,12 +132,12 @@ class AuthController extends BaseController {
                 return BaseController.error(res, '用戶名已存在', 400);
             }
 
-                    // 加密密碼
-        const saltRounds = 12;
-        const passwordHash = await bcrypt.hash(password, saltRounds);
+            // 加密密碼
+            const saltRounds = 12;
+            const passwordHash = await bcrypt.hash(password, saltRounds);
 
-        // 創建用戶
-        const result = await DatabaseHelper.run(`
+            // 創建用戶
+            const result = await DatabaseHelper.run(`
             INSERT INTO users (username, password_hash, full_name, role, is_active, created_at)
             VALUES (?, ?, ?, ?, 1, datetime('now'))
         `, [username, passwordHash, name || username, role]);
