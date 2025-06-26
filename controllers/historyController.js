@@ -260,9 +260,28 @@ class HistoryController extends BaseController {
     });
     
     /**
-     * 記錄登入歷史
+     * 記錄登入歷史（靜態方法，可在路由中調用）
      */
-    static async logLogin(userId, ipAddress, userAgent, success = true, failReason = null) {
+    static logLogin = BaseController.asyncHandler(async (req, res) => {
+        const { userId, ipAddress, userAgent, success = true, failReason = null } = req.body;
+        
+        if (!userId) {
+            return BaseController.error(res, '用戶 ID 為必填項目', 400);
+        }
+
+        try {
+            await HistoryController.logLoginInternal(userId, ipAddress, userAgent, success, failReason);
+            return BaseController.success(res, null, '登入記錄已記錄');
+        } catch (error) {
+            console.error('記錄登入失敗:', error);
+            return BaseController.error(res, '記錄登入失敗', 500);
+        }
+    });
+    
+    /**
+     * 記錄登入歷史（內部方法）
+     */
+    static async logLoginInternal(userId, ipAddress, userAgent, success = true, failReason = null) {
         try {
             const sql = `
                 INSERT INTO login_history (user_id, ip_address, user_agent, success, fail_reason, login_time)
@@ -1099,7 +1118,7 @@ class HistoryController extends BaseController {
      */
     static getAuditLogs = BaseController.asyncHandler(async (req, res) => {
         try {
-            return BaseController.success(res, { auditLogs: [], pagination: {} }, '審計日誌獲取成功');
+            return BaseController.success(res, [], '審計日誌獲取成功');
         } catch (error) {
             console.error('獲取審計日誌失敗:', error);
             return BaseController.error(res, '獲取審計日誌失敗', 500);
@@ -1111,7 +1130,7 @@ class HistoryController extends BaseController {
      */
     static getResourceAuditLogs = BaseController.asyncHandler(async (req, res) => {
         try {
-            return BaseController.success(res, { auditLogs: [], pagination: {} }, '資源審計日誌獲取成功');
+            return BaseController.success(res, [], '資源審計日誌獲取成功');
         } catch (error) {
             console.error('獲取資源審計日誌失敗:', error);
             return BaseController.error(res, '獲取資源審計日誌失敗', 500);
@@ -1159,7 +1178,7 @@ class HistoryController extends BaseController {
      */
     static searchOperations = BaseController.asyncHandler(async (req, res) => {
         try {
-            return BaseController.success(res, { operations: [], pagination: {} }, '操作記錄搜索成功');
+            return BaseController.success(res, [], '操作記錄搜索成功');
         } catch (error) {
             console.error('搜索操作記錄失敗:', error);
             return BaseController.error(res, '搜索操作記錄失敗', 500);
@@ -1171,7 +1190,7 @@ class HistoryController extends BaseController {
      */
     static searchLogins = BaseController.asyncHandler(async (req, res) => {
         try {
-            return BaseController.success(res, { logins: [], pagination: {} }, '登入記錄搜索成功');
+            return BaseController.success(res, [], '登入記錄搜索成功');
         } catch (error) {
             console.error('搜索登入記錄失敗:', error);
             return BaseController.error(res, '搜索登入記錄失敗', 500);
@@ -1183,7 +1202,7 @@ class HistoryController extends BaseController {
      */
     static searchErrors = BaseController.asyncHandler(async (req, res) => {
         try {
-            return BaseController.success(res, { errors: [], pagination: {} }, '錯誤記錄搜索成功');
+            return BaseController.success(res, [], '錯誤記錄搜索成功');
         } catch (error) {
             console.error('搜索錯誤記錄失敗:', error);
             return BaseController.error(res, '搜索錯誤記錄失敗', 500);
@@ -1195,7 +1214,7 @@ class HistoryController extends BaseController {
      */
     static advancedSearch = BaseController.asyncHandler(async (req, res) => {
         try {
-            return BaseController.success(res, { results: [], pagination: {} }, '高級搜索成功');
+            return BaseController.success(res, [], '高級搜索成功');
         } catch (error) {
             console.error('高級搜索失敗:', error);
             return BaseController.error(res, '高級搜索失敗', 500);
@@ -1295,90 +1314,6 @@ class HistoryController extends BaseController {
         } catch (error) {
             console.error('獲取錯誤統計失敗:', error);
             return BaseController.error(res, '獲取錯誤統計失敗', 500);
-        }
-    });
-
-    /**
-     * 導出操作歷史
-     */
-    static exportOperationHistory = BaseController.asyncHandler(async (req, res) => {
-        try {
-            return BaseController.success(res, null, '操作歷史導出成功');
-        } catch (error) {
-            console.error('導出操作歷史失敗:', error);
-            return BaseController.error(res, '導出操作歷史失敗', 500);
-        }
-    });
-
-    /**
-     * 導出登入歷史
-     */
-    static exportLoginHistory = BaseController.asyncHandler(async (req, res) => {
-        try {
-            return BaseController.success(res, null, '登入歷史導出成功');
-        } catch (error) {
-            console.error('導出登入歷史失敗:', error);
-            return BaseController.error(res, '導出登入歷史失敗', 500);
-        }
-    });
-
-    /**
-     * 導出錯誤日誌
-     */
-    static exportErrorLogs = BaseController.asyncHandler(async (req, res) => {
-        try {
-            return BaseController.success(res, null, '錯誤日誌導出成功');
-        } catch (error) {
-            console.error('導出錯誤日誌失敗:', error);
-            return BaseController.error(res, '導出錯誤日誌失敗', 500);
-        }
-    });
-
-    /**
-     * 導出審計日誌
-     */
-    static exportAuditLogs = BaseController.asyncHandler(async (req, res) => {
-        try {
-            return BaseController.success(res, null, '審計日誌導出成功');
-        } catch (error) {
-            console.error('導出審計日誌失敗:', error);
-            return BaseController.error(res, '導出審計日誌失敗', 500);
-        }
-    });
-
-    /**
-     * 獲取審計日誌
-     */
-    static getAuditLogs = BaseController.asyncHandler(async (req, res) => {
-        try {
-            return BaseController.success(res, [], '審計日誌獲取成功');
-        } catch (error) {
-            console.error('獲取審計日誌失敗:', error);
-            return BaseController.error(res, '獲取審計日誌失敗', 500);
-        }
-    });
-
-    /**
-     * 獲取資源審計日誌
-     */
-    static getResourceAuditLogs = BaseController.asyncHandler(async (req, res) => {
-        try {
-            return BaseController.success(res, [], '資源審計日誌獲取成功');
-        } catch (error) {
-            console.error('獲取資源審計日誌失敗:', error);
-            return BaseController.error(res, '獲取資源審計日誌失敗', 500);
-        }
-    });
-
-    /**
-     * 記錄審計日誌
-     */
-    static logAudit = BaseController.asyncHandler(async (req, res) => {
-        try {
-            return BaseController.success(res, null, '審計日誌記錄成功');
-        } catch (error) {
-            console.error('記錄審計日誌失敗:', error);
-            return BaseController.error(res, '記錄審計日誌失敗', 500);
         }
     });
 

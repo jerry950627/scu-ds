@@ -4,321 +4,345 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>首頁 - 東吳大學資料科學系學生會管理系統</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
-  <style>
-    body {
-      font-family: 'Microsoft JhengHei', Arial, sans-serif;
-      background-color: #fff0f5;
-      color: #4a3b47;
-      opacity: 0;
-      transition: opacity 0.3s ease-in-out;
-    }
-
-    body.loaded {
-      opacity: 1;
-    }
-
-    /* 載入完成後顯示頁面 */
-    body.loaded {
-      opacity: 1;
-    }
-
-    .sidebar {
-      position: fixed;
-      top: 0;
-      bottom: 0;
-      left: 0;
-      z-index: 100;
-      padding: 48px 0 0;
-      background-color: #ffb6c1;
-    }
-
-    .sidebar-sticky {
-      position: relative;
-      top: 0;
-      height: calc(100vh - 48px);
-      padding-top: .5rem;
-      overflow-x: hidden;
-      overflow-y: auto;
-    }
-
-    .nav-link {
-      color: #4a3b47;
-      font-weight: 500;
-      padding: 0.5rem 1rem;
-      transition: all 0.3s ease;
-    }
-
-    .nav-link:hover,
-    .nav-link.active {
-      background-color: #f08080;
-      color: #fff;
-    }
-
-    .nav-link i {
-      margin-right: 10px;
-    }
-
-    .main-content {
-      margin-left: 240px;
-      padding: 30px;
-    }
-
-    .department-card {
-      transition: transform 0.3s ease;
-      cursor: pointer;
-      height: 100%;
-      border: 2px solid #f8bbd0;
-      background-color: #ffe4e1;
-    }
-
-    .department-card:hover {
-      transform: translateY(-5px);
-      background-color: #ffdde1;
-    }
-
-    .card-icon {
-      font-size: 2.5rem;
-      margin-bottom: 15px;
-      color: #e75480;
-    }
-
-    .navbar {
-      position: fixed;
-      top: 0;
-      right: 0;
-      left: 0;
-      z-index: 1030;
-      background-color: #ffc0cb;
-      box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
-    }
-
-    .navbar-brand {
-      padding-left: 15px;
-      font-weight: bold;
-      color: #4a3b47 !important;
-    }
-
-    .user-info {
-      display: flex;
-      align-items: center;
-    }
-
-    .user-info img {
-      width: 40px;
-      height: 40px;
-      border-radius: 50%;
-      margin-right: 10px;
-    }
-
-    .card-title {
-      color: #c2185b;
-    }
-
-    .card-body h2 {
-      font-weight: bold;
-      color: #ad1457;
-    }
-
-    @media (max-width: 767.98px) {
-      .sidebar {
-        width: 100%;
-        height: auto;
-        position: relative;
-      }
-
-      .main-content {
-        margin-left: 0;
-      }
-    }
-
-    .loading-overlay {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100vh;
-      background-color: rgba(255, 240, 245, 0.9);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 1.5rem;
-      color: #e75480;
-      z-index: 9999;
-    }
-
-    .error-message {
-      position: fixed;
-      top: 20px;
-      right: 20px;
-      z-index: 10000;
-      max-width: 400px;
-    }
-  </style>
+  <title>系統首頁 - 東吳大學資料科學系學生會</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/css/bootstrap.min.css"
+    integrity="sha384-4Q6Gf2aSP4eDXB8Miphtr37CMZZQ5oXLH2yaXMJ2w8e2ZtHTl7GptT4jmndRuHDT" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <link rel="stylesheet" href="/assets/css/style.css">
 </head>
 
 <body>
-  <!-- 頂部導航欄 -->
-  <nav class="navbar navbar-expand-lg navbar-light bg-light">
-    <div class="container-fluid">
-      <a class="navbar-brand" href="/dashboard">東吳大學資料科學系學生會</a>
-      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-        <span class="navbar-toggler-icon"></span>
-      </button>
-      <div class="collapse navbar-collapse" id="navbarNav">
-        <ul class="navbar-nav ms-auto">
-          <li class="nav-item dropdown">
-            <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown">
-              <span id="current-user">使用者</span>
-            </a>
-            <ul class="dropdown-menu dropdown-menu-end">
-              <li><a class="dropdown-item" href="#" id="logout-btn">登出</a></li>
-            </ul>
-          </li>
-        </ul>
+  <div class="container py-5">
+    <!-- 新增成員按鈕 (僅管理員可見) -->
+    <div class="d-flex justify-content-center mb-3" id="addMemberSection" style="display: none;">
+      <a href="/add-member" class="btn btn-success btn-lg">
+        <i class="fas fa-user-plus me-2"></i>新增成員
+      </a>
+    </div>
+
+    <!-- 導航按鈕 -->
+    <div class="d-flex justify-content-center flex-wrap gap-3 mb-4">
+      <a href="/finance" class="btn btn-info">💰 財務部</a>
+      <a href="/activity" class="btn btn-info">📅 活動部</a>
+      <a href="/design" class="btn btn-info">🎨 美宣部</a>
+      <a href="/pr" class="btn btn-info">📢 公關部</a>
+      <a href="/secretary" class="btn btn-info">📋 文書部</a>
+      <a href="/history" class="btn btn-info">📊 歷史資料</a>
+      <a href="/admin" class="btn btn-dark" id="adminNavBtn" style="display: none;">🔧 系統管理</a>
+      <button class="btn btn-danger" onclick="logout()">🚪 登出</button>
+    </div>
+
+    <!-- 歡迎訊息 -->
+    <div class="text-center mb-5">
+      <h1 class="mb-3">🏛️ 東吳大學資料科學系學生會管理系統</h1>
+      <p class="lead">歡迎使用數位化管理平台</p>
+    </div>
+    <!-- 當前餘額顯示 -->
+    <div class="row mb-4">
+      <div class="col-md-6 mx-auto">
+        <div class="card text-center">
+          <div class="card-body">
+            <h5 class="card-title">💰 當前餘額</h5>
+            <h2 class="text-success" id="totalBalance">NT$ 0</h2>
+          </div>
+        </div>
       </div>
     </div>
-  </nav>
 
-  <!-- 側邊欄 -->
-  <div class="sidebar" style="width: 240px;">
-    <div class="sidebar-sticky">
-      <ul class="nav flex-column">
-        <li class="nav-item">
-          <a class="nav-link active" href="/dashboard">
-            <i class="bi bi-speedometer2"></i>首頁
-          </a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link" href="/activity">
-            <i class="bi bi-calendar-event"></i>活動部
-          </a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link" href="/design">
-            <i class="bi bi-brush"></i>美宣部
-          </a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link" href="/pr">
-            <i class="bi bi-people"></i>公關部
-          </a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link" href="/secretary">
-            <i class="bi bi-file-text"></i>文書部
-          </a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link" href="/finance">
-            <i class="bi bi-cash-coin"></i>財務部
-          </a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link" href="/history">
-            <i class="bi bi-clock-history"></i>歷史資料
-          </a>
-        </li>
-        <li class="nav-item admin-only" style="display: none;">
-          <a class="nav-link" href="/admin">
-            <i class="bi bi-gear"></i>系統管理
-          </a>
-        </li>
-      </ul>
+    <!-- 功能模組 -->
+    <div class="row g-4">
+      <!-- 財務部 -->
+      <div class="col-md-6 col-lg-4">
+        <div class="card h-100 shadow-sm">
+          <div class="card-body text-center">
+            <i class="fas fa-chart-line fa-3x text-success mb-3"></i>
+            <h5 class="card-title">財務部</h5>
+            <p class="card-text">管理收支記錄與預算</p>
+            <a href="/finance" class="btn btn-success">進入管理</a>
+          </div>
+        </div>
+      </div>
+
+      <!-- 活動部 -->
+      <div class="col-md-6 col-lg-4">
+        <div class="card h-100 shadow-sm">
+          <div class="card-body text-center">
+            <i class="fas fa-calendar-star fa-3x text-primary mb-3"></i>
+            <h5 class="card-title">活動部</h5>
+            <p class="card-text">規劃與執行學會活動</p>
+            <a href="/activity" class="btn btn-primary">進入管理</a>
+          </div>
+        </div>
+      </div>
+
+      <!-- 美宣部 -->
+      <div class="col-md-6 col-lg-4">
+        <div class="card h-100 shadow-sm">
+          <div class="card-body text-center">
+            <i class="fas fa-palette fa-3x text-info mb-3"></i>
+            <h5 class="card-title">美宣部</h5>
+            <p class="card-text">設計宣傳物與視覺識別</p>
+            <a href="/design" class="btn btn-info">進入管理</a>
+          </div>
+        </div>
+      </div>
+
+      <!-- 公關部 -->
+      <div class="col-md-6 col-lg-4">
+        <div class="card h-100 shadow-sm">
+          <div class="card-body text-center">
+            <i class="fas fa-bullhorn fa-3x text-warning mb-3"></i>
+            <h5 class="card-title">公關部</h5>
+            <p class="card-text">對外聯繫與合作事務</p>
+            <a href="/pr" class="btn btn-warning">進入管理</a>
+          </div>
+        </div>
+      </div>
+
+      <!-- 文書部 -->
+      <div class="col-md-6 col-lg-4">
+        <div class="card h-100 shadow-sm">
+          <div class="card-body text-center">
+            <i class="fas fa-file-contract fa-3x text-secondary mb-3"></i>
+            <h5 class="card-title">文書部</h5>
+            <p class="card-text">會議記錄與文件管理</p>
+            <a href="/secretary" class="btn btn-secondary">進入管理</a>
+          </div>
+        </div>
+      </div>
+
+      <!-- 歷史資料 -->
+      <div class="col-md-6 col-lg-4">
+        <div class="card h-100 shadow-sm">
+          <div class="card-body text-center">
+            <i class="fas fa-database fa-3x text-dark mb-3"></i>
+            <h5 class="card-title">歷史資料</h5>
+            <p class="card-text">查看系統記錄與歷史</p>
+            <a href="/history" class="btn btn-dark">進入管理</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 管理員功能 -->
+    <div id="adminSection" class="mt-5" style="display: none;">
+      <h4 class="mb-3">🔧 系統管理</h4>
+      <div class="row g-4">
+        <div class="col-md-6 col-lg-4">
+          <div class="card h-100 shadow-sm">
+            <div class="card-body text-center">
+              <i class="fas fa-users-cog fa-3x text-danger mb-3"></i>
+              <h5 class="card-title">系統管理</h5>
+              <p class="card-text">管理系統設定與權限</p>
+              <a href="/admin" class="btn btn-danger">進入管理</a>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-6 col-lg-4">
+          <div class="card h-100 shadow-sm">
+            <div class="card-body text-center">
+              <i class="fas fa-user-plus fa-3x text-success mb-3"></i>
+              <h5 class="card-title">新增成員</h5>
+              <p class="card-text">添加新的系統使用者</p>
+              <button class="btn btn-success" onclick="showAddMemberModal()">新增成員</button>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-6 col-lg-4">
+          <div class="card h-100 shadow-sm">
+            <div class="card-body text-center">
+              <i class="fas fa-users fa-3x text-primary mb-3"></i>
+              <h5 class="card-title">成員列表</h5>
+              <p class="card-text">查看所有系統成員</p>
+              <button class="btn btn-primary" onclick="showMemberListModal()">查看列表</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <footer class="mt-5 text-center">
+      東吳大學資料科學系學會 &copy; 2025
+    </footer>
+  </div>
+
+  <!-- 新增成員模態框 -->
+  <div class="modal fade" id="addMemberModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">
+            <i class="fas fa-user-plus me-2"></i>新增系統成員
+          </h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <form id="addMemberForm">
+            <!-- 基本資訊 -->
+            <div class="row">
+              <div class="col-12">
+                <h6 class="border-bottom pb-2 mb-3">
+                  <i class="fas fa-id-card me-2"></i>基本資訊
+                </h6>
+              </div>
+            </div>
+            
+            <div class="row">
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label for="addUsername" class="form-label">
+                    <i class="fas fa-user me-1"></i>帳號 <span class="text-danger">*</span>
+                  </label>
+                  <input type="text" class="form-control" id="addUsername" placeholder="例如：student001" required>
+                  <div class="form-text">只能包含英文字母、數字和底線</div>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label for="addPassword" class="form-label">
+                    <i class="fas fa-lock me-1"></i>密碼 <span class="text-danger">*</span>
+                  </label>
+                  <div class="input-group">
+                    <input type="password" class="form-control" id="addPassword" placeholder="至少6個字符" required>
+                    <button class="btn btn-outline-secondary" type="button" onclick="togglePassword('addPassword')">
+                      <i class="fas fa-eye" id="addPasswordToggleIcon"></i>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="row">
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label for="addFullName" class="form-label">
+                    <i class="fas fa-signature me-1"></i>姓名 <span class="text-danger">*</span>
+                  </label>
+                  <input type="text" class="form-control" id="addFullName" placeholder="例如：王小明" required>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label for="addStudentId" class="form-label">
+                    <i class="fas fa-id-badge me-1"></i>學號 <span class="text-danger">*</span>
+                  </label>
+                  <input type="text" class="form-control" id="addStudentId" placeholder="例如：12345678" required>
+                </div>
+              </div>
+            </div>
+
+
+
+            <!-- 系統權限 -->
+            <div class="row">
+              <div class="col-12">
+                <h6 class="border-bottom pb-2 mb-3 mt-4">
+                  <i class="fas fa-shield-alt me-2"></i>系統權限
+                </h6>
+              </div>
+            </div>
+
+            <div class="row">
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label for="addRole" class="form-label">
+                    <i class="fas fa-user-tag me-1"></i>角色 <span class="text-danger">*</span>
+                  </label>
+                  <select class="form-select" id="addRole" required>
+                    <option value="">請選擇角色</option>
+                    <option value="admin">系統管理員</option>
+                    <option value="secretary">秘書處</option>
+                    <option value="finance">財務部</option>
+                    <option value="activity">活動部</option>
+                    <option value="design">美宣部</option>
+                    <option value="pr">公關部</option>
+                    <option value="member">一般成員</option>
+                  </select>
+                </div>
+              </div>
+
+            </div>
+
+            <!-- 狀態設定 -->
+            <div class="row">
+              <div class="col-12">
+                <div class="mb-3">
+                  <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="addIsActive" checked>
+                    <label class="form-check-label" for="addIsActive">
+                      <i class="fas fa-toggle-on me-1"></i>啟用帳號
+                    </label>
+                    <div class="form-text">取消勾選將建立停用狀態的帳號</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary-modern" data-bs-dismiss="modal">
+            <i class="fas fa-times me-2"></i>取消
+          </button>
+          <button type="button" class="btn-primary-modern" onclick="submitAddMember()">
+            <i class="fas fa-user-plus me-2"></i>新增成員
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 
-  <!-- 主要內容 -->
-  <div class="main-content">
-    <div class="container-fluid">
-      <h1 class="mb-4">歡迎使用資料科學系學生會管理系統</h1>
-
-      <!-- 統計數據 -->
-      <div class="row mb-4">
-        <div class="col-md-4">
-          <div class="card">
-            <div class="card-body">
-              <h5 class="card-title">本學期活動數</h5>
-              <h2 id="activity-count">-</h2>
+  <!-- 成員列表模態框 -->
+  <div class="modal fade" id="memberListModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">
+            <i class="fas fa-users me-2"></i>系統成員列表
+          </h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <div>
+              <h6 class="mb-0">總共 <span id="memberCount">0</span> 位成員</h6>
             </div>
+            <button class="btn-primary-modern btn-sm" onclick="refreshMemberList()">
+              <i class="fas fa-sync-alt me-1"></i>重新整理
+            </button>
+          </div>
+          
+          <div class="table-responsive">
+            <table class="table table-hover">
+              <thead class="table-light">
+                <tr>
+                  <th>帳號</th>
+                  <th>姓名</th>
+                  <th>學號</th>
+                  <th>角色</th>
+                  <th>狀態</th>
+                  <th>建立時間</th>
+                </tr>
+              </thead>
+              <tbody id="memberListBody">
+                <!-- 動態載入成員列表 -->
+              </tbody>
+            </table>
+          </div>
+          
+          <div id="memberListLoading" class="text-center py-4" style="display: none;">
+            <i class="fas fa-spinner fa-spin fa-2x text-primary"></i>
+            <p class="mt-2 text-muted">載入中...</p>
+          </div>
+          
+          <div id="memberListEmpty" class="text-center py-4" style="display: none;">
+            <i class="fas fa-users-slash fa-2x text-muted"></i>
+            <p class="mt-2 text-muted">目前沒有成員資料</p>
           </div>
         </div>
-        <div class="col-md-4">
-          <div class="card">
-            <div class="card-body">
-              <h5 class="card-title">財務餘額</h5>
-              <h2 id="finance-balance">-</h2>
-            </div>
-          </div>
-        </div>
-        <div class="col-md-4">
-          <div class="card">
-            <div class="card-body">
-              <h5 class="card-title">合作廠商數</h5>
-              <h2 id="vendor-count">-</h2>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- 部門快速訪問 -->
-      <h2 class="mb-4">部門快速訪問</h2>
-      <div class="row g-4">
-        <div class="col-md-4">
-          <div class="department-card card" onclick="window.location.href='/activity'">
-            <div class="card-body text-center">
-              <i class="bi bi-calendar-event card-icon"></i>
-              <h5 class="card-title">活動部</h5>
-              <p class="card-text">管理活動計畫和進度資料</p>
-            </div>
-          </div>
-        </div>
-        <div class="col-md-4">
-          <div class="department-card card" onclick="window.location.href='/design'">
-            <div class="card-body text-center">
-              <i class="bi bi-brush card-icon"></i>
-              <h5 class="card-title">美宣部</h5>
-              <p class="card-text">管理設計作品和素材資料</p>
-            </div>
-          </div>
-        </div>
-        <div class="col-md-4">
-          <div class="department-card card" onclick="window.location.href='/pr'">
-            <div class="card-body text-center">
-              <i class="bi bi-people card-icon"></i>
-              <h5 class="card-title">公關部</h5>
-              <p class="card-text">管理廠商合作資料</p>
-            </div>
-          </div>
-        </div>
-        <div class="col-md-4">
-          <div class="department-card card" onclick="window.location.href='/secretary'">
-            <div class="card-body text-center">
-              <i class="bi bi-file-text card-icon"></i>
-              <h5 class="card-title">文書部</h5>
-              <p class="card-text">管理會議記錄和檔案資料</p>
-            </div>
-          </div>
-        </div>
-        <div class="col-md-4">
-          <div class="department-card card" onclick="window.location.href='/finance'">
-            <div class="card-body text-center">
-              <i class="bi bi-cash-coin card-icon"></i>
-              <h5 class="card-title">財務部</h5>
-              <p class="card-text">管理財務收支和預算資料</p>
-            </div>
-          </div>
-        </div>
-        <div class="col-md-4">
-          <div class="department-card card" onclick="window.location.href='/history'">
-            <div class="card-body text-center">
-              <i class="bi bi-clock-history card-icon"></i>
-              <h5 class="card-title">歷史資料</h5>
-              <p class="card-text">查看歷年學生會資料</p>
-            </div>
-          </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary-modern" data-bs-dismiss="modal">
+            <i class="fas fa-times me-2"></i>關閉
+          </button>
         </div>
       </div>
     </div>
@@ -327,274 +351,386 @@
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   <script src="/assets/js/globalErrorHandler.js"></script>
   <script src="/assets/js/common.js"></script>
+  <script src="/assets/js/finance.js"></script>
   <script>
-    // 簡化的腳本載入檢查
-    function waitForScripts() {
-      return new Promise((resolve) => {
-        let attempts = 0;
-        const maxAttempts = 50; // 5秒超時
-        
-        function checkScripts() {
-          attempts++;
-          
-          // 檢查必要的腳本是否載入
-          const scriptsLoaded = (
-            typeof ErrorHandler !== 'undefined' && 
-            typeof ApiService !== 'undefined'
-          );
-          
-          if (scriptsLoaded || attempts >= maxAttempts) {
-            resolve(scriptsLoaded);
-          } else {
-            setTimeout(checkScripts, 100);
-          }
-        }
-        
-        checkScripts();
-      });
-    }
-
-    // 設置超時機制，確保頁面不會永遠空白
-    let pageLoadTimeout = setTimeout(function() {
-      console.warn('頁面載入超時，顯示基本內容');
-      document.body.classList.add('loaded');
-      
-      // 設置基本用戶資訊
-      const currentUserElement = document.getElementById('current-user');
-      if (currentUserElement && !currentUserElement.textContent.trim()) {
-        currentUserElement.textContent = '使用者';
-      }
-      
-      // 顯示超時警告
-      showBasicWarning();
-    }, 10000); // 10秒超時
-
-    document.addEventListener('DOMContentLoaded', async function () {
+    // 檢查用戶認證狀態
+    document.addEventListener('DOMContentLoaded', async function() {
       try {
-        // 等待腳本載入
-        const scriptsLoaded = await waitForScripts();
-        
-        // 初始化全域錯誤處理器
-        if (typeof GlobalErrorHandler !== 'undefined') {
-          GlobalErrorHandler.init();
-        }
-        
-        // 顯示載入指示器（如果可用）
-        if (typeof LoadingIndicator !== 'undefined') {
-          LoadingIndicator.show('正在載入用戶資訊...');
-        }
-        
-        // 如果腳本載入失敗，顯示警告但繼續執行
-        if (!scriptsLoaded) {
-          console.warn('部分腳本載入失敗，使用基本功能模式');
-          showBasicWarning();
-        }
-
-        // 獲取用戶資訊
-        let user = null;
-        try {
-          if (typeof ApiService !== 'undefined') {
-            const response = await ApiService.get('/auth/check');
-            const data = await response.json();
-            
-            console.log('認證檢查回應:', data);
-            
-            // 檢查用戶是否已認證
-            if (!data.authenticated || !data.user) {
-              console.log('認證失敗，重定向到首頁');
-              window.location.replace('/');
-              return;
-            }
-            
-            user = data.user;
-          } else {
-            // ApiService 不可用時使用預設用戶
-            user = { username: '使用者', role: 'user' };
-          }
-        } catch (error) {
-          console.error('認證檢查失敗:', error);
-          // 如果認證檢查失敗，使用預設用戶資訊
-          user = { username: '使用者', role: 'user' };
-        }
-        
-        // 更新使用者名稱
-        const currentUserElement = document.getElementById('current-user');
-        if (currentUserElement) {
-          currentUserElement.textContent = user.username || user.name || '使用者';
-        }
-
-        // 如果是管理員，顯示管理員選項
-        if (user.role === 'admin' || user.isAdmin) {
-          document.querySelectorAll('.admin-only').forEach(el => {
-            el.style.display = 'block';
-          });
-        }
-
-        // 載入儀表板資料
-        if (typeof LoadingIndicator !== 'undefined') {
-          LoadingIndicator.show('正在載入儀表板資料...');
-        }
-        try {
-          await fetchDashboardData();
-        } catch (error) {
-          console.error('載入儀表板資料失敗:', error);
-          // 即使載入失敗也繼續顯示頁面
-        }
-
-        // 隱藏載入指示器並顯示頁面
-        if (typeof LoadingIndicator !== 'undefined') {
-          LoadingIndicator.hide();
-        }
-        document.body.classList.add('loaded');
-        
-        // 清除超時計時器
-        clearTimeout(pageLoadTimeout);
-        
-        console.log('✅ 儀表板初始化完成');
-      } catch (error) {
-        console.error('初始化錯誤:', error);
-        
-        // 隱藏載入指示器
-        if (typeof LoadingIndicator !== 'undefined') {
-          LoadingIndicator.hide();
-        }
-        
-        // 顯示錯誤訊息
-        if (typeof ErrorHandler !== 'undefined') {
-          ErrorHandler.showError('載入頁面時發生錯誤: ' + error.message);
-        } else {
-          // 創建簡單的錯誤提示
-          const errorDiv = document.createElement('div');
-          errorDiv.className = 'alert alert-warning';
-          errorDiv.style.cssText = 'position: fixed; top: 20px; right: 20px; z-index: 10000; max-width: 400px;';
-          errorDiv.innerHTML = `<strong>注意：</strong> 部分功能可能無法正常使用，但您仍可以瀏覽基本內容。`;
-          document.body.appendChild(errorDiv);
-        }
-        
-        // 顯示基本頁面內容
-        document.body.classList.add('loaded');
-        
-        // 設置基本用戶資訊
-        const currentUserElement = document.getElementById('current-user');
-        if (currentUserElement) {
-          currentUserElement.textContent = '使用者';
-        }
-        
-        // 清除超時計時器
-        clearTimeout(pageLoadTimeout);
-      }
-
-      // 登出按鈕處理
-      const logoutBtn = document.getElementById('logout-btn');
-      if (logoutBtn) {
-        logoutBtn.addEventListener('click', async function (e) {
-          e.preventDefault();
-          if (confirm('確定要登出嗎？')) {
-            try {
-              if (typeof ApiService !== 'undefined') {
-                await ApiService.post('/auth/logout', {});
-              }
-            } catch (error) {
-              console.error('登出錯誤:', error);
-            } finally {
-              // 無論API調用是否成功，都重定向到首頁
-              window.location.href = '/';
-            }
-          }
+        const response = await fetch('/api/auth/check', {
+          method: 'GET',
+          credentials: 'include'
         });
+        
+        if (response.ok) {
+          const data = await response.json();
+          if (data.authenticated && data.user) {
+            // 如果是管理員，顯示管理員功能
+            if (data.user.role === 'admin') {
+              document.getElementById('adminSection').style.display = 'block';
+              document.getElementById('adminNavBtn').style.display = 'inline-block';
+              document.getElementById('addMemberSection').style.display = 'flex';
+            }
+            
+            // 延遲載入統計數據，確保所有元素都已載入
+            setTimeout(() => {
+              loadDashboardStats();
+            }, 500);
+          } else {
+            console.log('用戶未認證，等待後端重定向');
+          }
+        } else {
+          console.error('認證檢查失敗，HTTP狀態:', response.status);
+        }
+      } catch (error) {
+        console.error('認證檢查錯誤:', error);
       }
     });
 
-    // 顯示基本警告訊息
-    function showBasicWarning() {
-      const warningDiv = document.createElement('div');
-      warningDiv.className = 'alert alert-warning alert-dismissible fade show';
-      warningDiv.style.cssText = 'position: fixed; top: 20px; right: 20px; z-index: 10000; max-width: 400px;';
-      warningDiv.innerHTML = `
-        <strong>注意：</strong> 部分功能可能無法正常使用，但您仍可以瀏覽基本內容。
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-      `;
-      document.body.appendChild(warningDiv);
-      
-      // 5秒後自動移除
-      setTimeout(() => {
-        if (warningDiv.parentNode) {
-          warningDiv.remove();
-        }
-      }, 5000);
-    }
-
-    // 載入儀表板資料
-    async function fetchDashboardData() {
-      // 設置預設值
-      const defaultValues = {
-        'activity-count': '0',
-        'finance-balance': '$0',
-        'vendor-count': '0'
-      };
-
-      // 先設置預設值，確保頁面有內容顯示
-      Object.keys(defaultValues).forEach(id => {
-        const element = document.getElementById(id);
-        if (element) {
-          element.textContent = defaultValues[id];
-        }
-      });
-
-      // 如果 ApiService 不可用，跳過 API 調用
-      if (typeof ApiService === 'undefined') {
-        console.warn('ApiService 不可用，跳過數據載入');
-        return;
-      }
-
-      // 載入活動數量
+    // 載入儀表板統計數據
+    async function loadDashboardStats() {
       try {
-        const activityResponse = await ApiService.get('/api/activity/statistics');
-        const activityData = await activityResponse.json();
-        const activityElement = document.getElementById('activity-count');
-        if (activityElement && activityData.success) {
-          // 使用 documents.total_documents 作為活動數量
-          activityElement.textContent = activityData.data?.documents?.total_documents || 0;
-        }
-      } catch (error) {
-        console.error('載入活動數量時發生錯誤:', error);
-        // 保持預設值
-      }
-
-      // 載入財務餘額
-      try {
-        const financeResponse = await ApiService.get('/api/finance/summary');
-        const financeData = await financeResponse.json();
-        const financeElement = document.getElementById('finance-balance');
-        if (financeElement && financeData.success) {
-          const balance = financeData.data?.balance || financeData.balance || 0;
-          financeElement.textContent = `$${balance.toLocaleString()}`;
-        }
-      } catch (error) {
-        console.error('載入財務餘額時發生錯誤:', error);
-        // 保持預設值
-      }
-
-      // 載入廠商數量
-      try {
-        const vendorResponse = await ApiService.get('/api/pr/vendors');
-        const vendorData = await vendorResponse.json();
-        const vendorElement = document.getElementById('vendor-count');
-        if (vendorElement) {
-          if (vendorData.success && Array.isArray(vendorData.data)) {
-            vendorElement.textContent = vendorData.data.length;
-          } else if (Array.isArray(vendorData)) {
-            vendorElement.textContent = vendorData.length;
-          } else {
-            vendorElement.textContent = '0';
+        // 載入財務統計
+        const financeResponse = await fetch('/api/finance/summary');
+        if (financeResponse.ok) {
+          const financeSummary = await financeResponse.json();
+          
+          // 更新當前餘額
+          const totalBalanceEl = document.getElementById('totalBalance');
+          if (totalBalanceEl) {
+            totalBalanceEl.textContent = `NT$ ${financeSummary.balance.toFixed(0)}`;
           }
         }
       } catch (error) {
-        console.error('載入廠商數量時發生錯誤:', error);
-        // 保持預設值
+        console.log('載入統計數據失敗:', error.message);
+        
+        // 設置預設值
+        const totalBalanceEl = document.getElementById('totalBalance');
+        if (totalBalanceEl) {
+          totalBalanceEl.textContent = 'NT$ 0';
+        }
+      }
+    }
+
+    // 登出功能
+    function logout() {
+      if (confirm('確定要登出嗎？')) {
+        fetch('/api/auth/logout', {
+          method: 'POST',
+          credentials: 'include'
+        }).then(() => {
+          window.location.href = '/';
+        }).catch(() => {
+          window.location.href = '/';
+        });
+      }
+    }
+
+    // 新增成員相關功能
+    function showAddMemberModal() {
+      const modal = new bootstrap.Modal(document.getElementById('addMemberModal'));
+      // 重置表單
+      document.getElementById('addMemberForm').reset();
+      // 預設啟用狀態
+      document.getElementById('addIsActive').checked = true;
+      modal.show();
+    }
+
+    // 切換密碼顯示/隱藏
+    function togglePassword(inputId) {
+      const input = document.getElementById(inputId);
+      const icon = document.getElementById(inputId + 'ToggleIcon');
+      
+      if (input.type === 'password') {
+        input.type = 'text';
+        icon.className = 'fas fa-eye-slash';
+      } else {
+        input.type = 'password';
+        icon.className = 'fas fa-eye';
+      }
+    }
+
+    // 提交新增成員表單
+    async function submitAddMember() {
+      const form = document.getElementById('addMemberForm');
+      
+      // 基本驗證
+      if (!form.checkValidity()) {
+        form.reportValidity();
+        return;
+      }
+
+      // 收集表單資料
+      const formData = {
+        username: document.getElementById('addUsername').value.trim(),
+        password: document.getElementById('addPassword').value,
+        full_name: document.getElementById('addFullName').value.trim(),
+        student_id: document.getElementById('addStudentId').value.trim(),
+        role: document.getElementById('addRole').value,
+        is_active: document.getElementById('addIsActive').checked ? 1 : 0
+      };
+
+      // 前端驗證
+      if (!validateMemberData(formData)) {
+        return;
+      }
+
+      try {
+        // 顯示載入狀態
+        const submitBtn = document.querySelector('#addMemberModal .btn-primary-modern');
+        const originalText = submitBtn.innerHTML;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>建立中...';
+        submitBtn.disabled = true;
+
+        // 發送請求
+        const response = await fetch('/api/admin/users', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include',
+          body: JSON.stringify(formData)
+        });
+
+        const result = await response.json();
+
+        if (response.ok) {
+          // 成功
+          showNotification('成員新增成功！', 'success');
+          
+          // 關閉模態框
+          const modal = bootstrap.Modal.getInstance(document.getElementById('addMemberModal'));
+          modal.hide();
+          
+          // 重置表單
+          form.reset();
+        } else {
+          // 失敗
+          showNotification(result.message || '新增成員失敗', 'error');
+        }
+
+      } catch (error) {
+        console.error('新增成員錯誤:', error);
+        showNotification('系統錯誤，請稍後再試', 'error');
+      } finally {
+        // 恢復按鈕狀態
+        const submitBtn = document.querySelector('#addMemberModal .btn-primary-modern');
+        submitBtn.innerHTML = originalText;
+        submitBtn.disabled = false;
+      }
+    }
+
+    // 驗證成員資料
+    function validateMemberData(data) {
+      // 帳號格式驗證
+      if (!/^[a-zA-Z0-9_]+$/.test(data.username)) {
+        showNotification('帳號只能包含英文字母、數字和底線', 'error');
+        return false;
+      }
+
+      // 密碼長度驗證
+      if (data.password.length < 6) {
+        showNotification('密碼至少需要6個字符', 'error');
+        return false;
+      }
+
+      // 學號格式驗證（假設8位數字）
+      if (!/^\d{8}$/.test(data.student_id)) {
+        showNotification('學號格式不正確，應為8位數字', 'error');
+        return false;
+      }
+
+      return true;
+    }
+
+    // 通知函數
+    function showNotification(message, type = 'info') {
+      // 移除現有通知
+      const existingNotification = document.querySelector('.notification-toast');
+      if (existingNotification) {
+        existingNotification.remove();
+      }
+
+      // 創建通知元素
+      const notification = document.createElement('div');
+      notification.className = `notification-toast alert alert-${type === 'success' ? 'success' : type === 'error' ? 'danger' : 'info'} position-fixed`;
+      notification.style.cssText = `
+        top: 20px;
+        right: 20px;
+        z-index: 9999;
+        min-width: 300px;
+        max-width: 400px;
+        animation: slideInRight 0.3s ease;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      `;
+      notification.innerHTML = `
+        <div class="d-flex align-items-center">
+          <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-triangle' : 'info-circle'} me-2"></i>
+          <span>${message}</span>
+          <button type="button" class="btn-close ms-auto" onclick="this.parentElement.parentElement.remove()"></button>
+        </div>
+      `;
+      
+      document.body.appendChild(notification);
+      
+      // 3秒後自動移除
+      setTimeout(() => {
+        if (notification.parentNode) {
+          notification.style.animation = 'slideOutRight 0.3s ease';
+          setTimeout(() => {
+            if (notification.parentNode) {
+              notification.parentNode.removeChild(notification);
+            }
+          }, 300);
+        }
+      }, 3000);
+    }
+
+    // 顯示成員列表模態框
+    function showMemberListModal() {
+      const modal = new bootstrap.Modal(document.getElementById('memberListModal'));
+      modal.show();
+      loadMemberList();
+    }
+
+    // 載入成員列表
+    async function loadMemberList() {
+      const loadingEl = document.getElementById('memberListLoading');
+      const emptyEl = document.getElementById('memberListEmpty');
+      const bodyEl = document.getElementById('memberListBody');
+      const countEl = document.getElementById('memberCount');
+
+      // 顯示載入狀態
+      loadingEl.style.display = 'block';
+      emptyEl.style.display = 'none';
+      bodyEl.innerHTML = '';
+
+      try {
+        const response = await fetch('/api/admin/users', {
+          method: 'GET',
+          credentials: 'include'
+        });
+
+        const result = await response.json();
+
+        if (response.ok && result.success) {
+          const members = result.data || [];
+          countEl.textContent = members.length;
+
+          if (members.length === 0) {
+            emptyEl.style.display = 'block';
+          } else {
+            bodyEl.innerHTML = members.map(member => `
+              <tr>
+                <td><strong>${escapeHtml(member.username)}</strong></td>
+                <td>${escapeHtml(member.full_name || member.name || '-')}</td>
+                <td>${escapeHtml(member.student_id || '-')}</td>
+                <td>
+                  <span class="badge ${getRoleBadgeClass(member.role)}">${getRoleDisplayName(member.role)}</span>
+                </td>
+                <td>
+                  <span class="badge ${member.is_active ? 'bg-success' : 'bg-secondary'}">
+                    ${member.is_active ? '啟用' : '停用'}
+                  </span>
+                </td>
+                <td>${formatDateTime(member.created_at)}</td>
+              </tr>
+            `).join('');
+          }
+        } else {
+          showNotification(result.message || '載入成員列表失敗', 'error');
+          emptyEl.style.display = 'block';
+        }
+
+      } catch (error) {
+        console.error('載入成員列表錯誤:', error);
+        showNotification('載入成員列表失敗', 'error');
+        emptyEl.style.display = 'block';
+      } finally {
+        loadingEl.style.display = 'none';
+      }
+    }
+
+    // 重新整理成員列表
+    function refreshMemberList() {
+      loadMemberList();
+    }
+
+    // 輔助函數
+    function escapeHtml(text) {
+      if (!text) return '';
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    function getRoleBadgeClass(role) {
+      switch (role) {
+        case 'admin': return 'bg-danger';
+        case 'secretary': return 'bg-primary';
+        case 'finance': return 'bg-success';
+        case 'activity': return 'bg-warning';
+        case 'design': return 'bg-info';
+        case 'pr': return 'bg-secondary';
+        default: return 'bg-light text-dark';
+      }
+    }
+
+    function getRoleDisplayName(role) {
+      switch (role) {
+        case 'admin': return '系統管理員';
+        case 'secretary': return '秘書處';
+        case 'finance': return '財務部';
+        case 'activity': return '活動部';
+        case 'design': return '美宣部';
+        case 'pr': return '公關部';
+        case 'member': return '一般成員';
+        default: return role || '未知';
+      }
+    }
+
+    function formatDateTime(dateString) {
+      if (!dateString) return '-';
+      try {
+        const date = new Date(dateString);
+        return date.toLocaleDateString('zh-TW') + ' ' + date.toLocaleTimeString('zh-TW', {
+          hour: '2-digit',
+          minute: '2-digit'
+        });
+      } catch (error) {
+        return dateString;
       }
     }
   </script>
-  </body>
+
+  <style>
+    /* 通知動畫 */
+    @keyframes slideInRight {
+      from { transform: translateX(100%); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+    
+    @keyframes slideOutRight {
+      from { transform: translateX(0); opacity: 1; }
+      to { transform: translateX(100%); opacity: 0; }
+    }
+
+    /* 模態框樣式 */
+    .modal-header {
+      background-color: #f8f9fa;
+      border-bottom: 1px solid #dee2e6;
+    }
+
+    /* 響應式優化 */
+    @media (max-width: 768px) {
+      .modal-dialog {
+        margin: 0.5rem;
+      }
+      
+      .modal-lg {
+        max-width: none;
+      }
+    }
+  </style>
+</body>
 
 </html>

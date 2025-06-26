@@ -23,32 +23,28 @@ class AuthController extends BaseController {
             );
 
             if (!user) {
-                await BaseController.logAction(req, 'LOGIN_FAILED', `登入失敗 - 用戶不存在: ${username}`);
+                // await BaseController.logAction(req, 'LOGIN_FAILED', `登入失敗 - 用戶不存在: ${username}`);
                 return BaseController.error(res, '用戶名或密碼錯誤', 401);
             }
 
             // 驗證密碼
-            const isValidPassword = await bcrypt.compare(password, user.password);
+            const isValidPassword = await bcrypt.compare(password, user.password_hash);
             if (!isValidPassword) {
-                await BaseController.logAction(req, 'LOGIN_FAILED', `登入失敗 - 密碼錯誤: ${username}`);
+                // await BaseController.logAction(req, 'LOGIN_FAILED', `登入失敗 - 密碼錯誤: ${username}`);
                 return BaseController.error(res, '用戶名或密碼錯誤', 401);
             }
 
-            // 更新最後登入時間
-            await DatabaseHelper.run(
-                'UPDATE users SET last_login = datetime("now") WHERE id = ?',
-                [user.id]
-            );
+                    // 註：最後登入時間欄位已移除，改用其他方式記錄
 
             // 建立會話
             req.session.user = {
                 id: user.id,
                 username: user.username,
                 role: user.role,
-                name: user.name
+                full_name: user.full_name
             };
 
-            await BaseController.logAction(req, 'LOGIN_SUCCESS', `用戶登入成功: ${username}`);
+            // await BaseController.logAction(req, 'LOGIN_SUCCESS', `用戶登入成功: ${username}`);
 
             // 清理敏感資料
             const userData = BaseController.sanitizeData(user);
@@ -60,7 +56,8 @@ class AuthController extends BaseController {
 
         } catch (error) {
             console.error('登入錯誤:', error);
-            await BaseController.logAction(req, 'LOGIN_ERROR', `登入系統錯誤: ${error.message}`);
+            console.error('錯誤堆疊:', error.stack);
+            // await BaseController.logAction(req, 'LOGIN_ERROR', `登入系統錯誤: ${error.message}`);
             return BaseController.error(res, '登入失敗，請稍後再試', 500);
         }
     });
@@ -96,7 +93,7 @@ class AuthController extends BaseController {
         try {
             // 驗證用戶是否仍然存在且啟用
             const user = await DatabaseHelper.get(
-                'SELECT id, username, role, name, is_active FROM users WHERE id = ? AND is_active = 1',
+                'SELECT id, username, role, full_name, is_active FROM users WHERE id = ? AND is_active = 1',
                 [req.session.user.id]
             );
 
@@ -135,27 +132,15 @@ class AuthController extends BaseController {
                 return BaseController.error(res, '用戶名已存在', 400);
             }
 
-            // 檢查電子郵件是否已存在
-            if (email) {
-                const existingEmail = await DatabaseHelper.get(
-                    'SELECT id FROM users WHERE email = ?',
-                    [email]
-                );
+                    // 加密密碼
+        const saltRounds = 12;
+        const passwordHash = await bcrypt.hash(password, saltRounds);
 
-                if (existingEmail) {
-                    return BaseController.error(res, '電子郵件已被使用', 400);
-                }
-            }
-
-            // 加密密碼
-            const saltRounds = 12;
-            const passwordHash = await bcrypt.hash(password, saltRounds);
-
-            // 創建用戶
-            const result = await DatabaseHelper.run(`
-                INSERT INTO users (username, password_hash, name, email, role, status, created_at)
-                VALUES (?, ?, ?, ?, ?, 'active', datetime('now'))
-            `, [username, passwordHash, name, email, role]);
+        // 創建用戶
+        const result = await DatabaseHelper.run(`
+            INSERT INTO users (username, password_hash, full_name, role, is_active, created_at)
+            VALUES (?, ?, ?, ?, 1, datetime('now'))
+        `, [username, passwordHash, name || username, role]);
 
             await BaseController.logAction(req, 'USER_REGISTER', `新用戶註冊: ${username}`);
 
@@ -204,7 +189,7 @@ class AuthController extends BaseController {
 
             // 更新密碼
             await DatabaseHelper.run(
-                'UPDATE users SET password_hash = ?, updated_at = datetime("now") WHERE id = ?',
+                'UPDATE users SET password_hash = ? WHERE id = ?',
                 [newPasswordHash, userId]
             );
 
@@ -227,7 +212,7 @@ class AuthController extends BaseController {
 
         try {
             const user = await DatabaseHelper.get(`
-                SELECT id, username, name, email, role, status, created_at, last_login
+                SELECT id, username, full_name, role, is_active, created_at
                 FROM users WHERE id = ?
             `, [userId]);
 
@@ -251,7 +236,7 @@ class AuthController extends BaseController {
 
         try {
             const user = await DatabaseHelper.get(`
-                SELECT id, username, name, email, role, status, created_at, last_login
+                SELECT id, username, full_name, role, is_active, created_at
                 FROM users WHERE id = ?
             `, [userId]);
 
@@ -271,37 +256,24 @@ class AuthController extends BaseController {
      * 更新用戶資訊
      */
     static updateProfile = BaseController.asyncHandler(async (req, res) => {
-        const { name, email } = req.body;
+        const { name } = req.body;
         const userId = req.session.user.id;
 
         try {
-            // 檢查電子郵件是否已被其他用戶使用
-            if (email) {
-                const existingEmail = await DatabaseHelper.get(
-                    'SELECT id FROM users WHERE email = ? AND id != ?',
-                    [email, userId]
-                );
-
-                if (existingEmail) {
-                    return BaseController.error(res, '電子郵件已被其他用戶使用', 400);
-                }
-            }
-
             // 更新用戶資訊
             await DatabaseHelper.run(`
                 UPDATE users 
-                SET name = ?, email = ?, updated_at = datetime('now')
+                SET full_name = ?
                 WHERE id = ?
-            `, [name, email, userId]);
+            `, [name, userId]);
 
             // 更新會話中的用戶資訊
-            req.session.user.name = name;
+            req.session.user.full_name = name;
 
             await BaseController.logAction(req, 'PROFILE_UPDATED', '用戶更新個人資訊');
 
             return BaseController.success(res, {
-                name,
-                email
+                name
             }, '個人資訊更新成功');
 
         } catch (error) {
@@ -364,7 +336,7 @@ class AuthController extends BaseController {
 
             // 更新密碼
             await DatabaseHelper.run(
-                'UPDATE users SET password = ?, updated_at = datetime("now") WHERE id = ?',
+                'UPDATE users SET password_hash = ? WHERE id = ?',
                 [hashedPassword, userId]
             );
 

@@ -45,4 +45,9 @@ router.get('/admin', requireAdmin, (req, res) => {
     res.sendFile(path.join(__dirname, '../../public/pages/admin.html'));
 });
 
+// 新增成員頁面 (僅管理員可訪問)
+router.get('/add-member', requireAdmin, (req, res) => {
+    res.sendFile(path.join(__dirname, '../../public/pages/add-member.html'));
+});
+
 module.exports = router;

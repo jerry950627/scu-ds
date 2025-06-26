@@ -90,12 +90,27 @@
                 錯誤時間：<span id="errorTime"></span>
             </small>
         </div>
+        
+        <div class="error-details">
+            <strong>可能的解決方案：</strong><br>
+            1. 請確認您已正確登入系統<br>
+            2. 檢查您是否有足夠的權限存取此頁面<br>
+            3. 如果問題持續，請聯繫系統管理員<br>
+            4. 您可以嘗試重新登入系統
+        </div>
     </div>
     
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         // 設置錯誤時間
         document.getElementById('errorTime').textContent = new Date().toLocaleString('zh-TW');
+        
+        // 如果 5 秒後沒有操作，自動跳轉到首頁
+        setTimeout(() => {
+            if (confirm('是否要自動返回首頁？')) {
+                window.location.href = '/';
+            }
+        }, 10000);
     </script>
 </body>
 </html>

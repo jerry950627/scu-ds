@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>新增成員</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/css/bootstrap.min.css"
+    integrity="sha384-4Q6Gf2aSP4eDXB8Miphtr37CMZZQ5oXLH2yaXMJ2w8e2ZtHTl7GptT4jmndRuHDT" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <link rel="stylesheet" href="/assets/css/style.css">
+</head>
+
+<body>
+  <div class="container py-5">
+    <!-- 導航按鈕 -->
+    <div class="d-flex justify-content-center flex-wrap gap-3 mb-4">
+      <a href="/dashboard" class="btn btn-light">🏠 首頁</a>
+      <a href="/activity" class="btn btn-info">活動部</a>
+      <a href="/design" class="btn btn-info">美宣部</a>
+      <a href="/pr" class="btn btn-info">公關部</a>
+      <a href="/secretary" class="btn btn-info">文書部</a>
+      <a href="/finance" class="btn btn-info">財務部</a>
+      <a href="/history" class="btn btn-info">歷史資料</a>
+      <a href="/admin" class="btn btn-dark">系統管理</a>
+    </div>
+
+    <div class="text-center mb-4">
+      <h1>👥 新增系統成員</h1>
+      <p class="lead">填寫以下資訊來建立新的系統使用者</p>
+    </div>
+
+    <!-- 新增成員表單 -->
+    <div class="row justify-content-center">
+      <div class="col-md-8 col-lg-6">
+        <div class="card">
+          <div class="card-header">
+            <h5 class="mb-0">
+              <i class="fas fa-user-plus me-2"></i>成員資訊
+            </h5>
+          </div>
+          <div class="card-body">
+            <!-- 訊息顯示區域 -->
+            <div id="alertContainer"></div>
+
+            <form id="addMemberForm">
+              <!-- 基本資訊 -->
+              <div class="mb-4">
+                <h6 class="border-bottom pb-2 mb-3">
+                  <i class="fas fa-id-card me-2"></i>基本資訊
+                </h6>
+                
+                <div class="row">
+                  <div class="col-md-6">
+                    <div class="mb-3">
+                      <label for="username" class="form-label">
+                        <i class="fas fa-user me-1"></i>帳號 <span class="text-danger">*</span>
+                      </label>
+                      <input type="text" class="form-control" id="username" name="username" required 
+                             placeholder="例如：student001" maxlength="50">
+                      <div class="form-text">只能包含英文字母、數字和底線</div>
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <div class="mb-3">
+                      <label for="password" class="form-label">
+                        <i class="fas fa-lock me-1"></i>密碼 <span class="text-danger">*</span>
+                      </label>
+                      <div class="input-group">
+                        <input type="password" class="form-control" id="password" name="password" required 
+                               placeholder="至少6個字符" minlength="6">
+                        <button class="btn btn-outline-secondary" type="button" onclick="togglePassword('password')">
+                          <i class="fas fa-eye" id="passwordToggleIcon"></i>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="row">
+                  <div class="col-md-6">
+                    <div class="mb-3">
+                      <label for="fullName" class="form-label">
+                        <i class="fas fa-signature me-1"></i>姓名 <span class="text-danger">*</span>
+                      </label>
+                      <input type="text" class="form-control" id="fullName" name="full_name" required 
+                             placeholder="例如：王小明" maxlength="100">
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <div class="mb-3">
+                      <label for="studentId" class="form-label">
+                        <i class="fas fa-id-badge me-1"></i>學號 <span class="text-danger">*</span>
+                      </label>
+                      <input type="text" class="form-control" id="studentId" name="student_id" required 
+                             placeholder="例如：12345678" maxlength="20">
+                    </div>
+                  </div>
+                </div>
+
+                <div class="row">
+                  <div class="col-md-6">
+                    <div class="mb-3">
+                      <label for="email" class="form-label">
+                        <i class="fas fa-envelope me-1"></i>電子郵件
+                      </label>
+                      <input type="email" class="form-control" id="email" name="email" 
+                             placeholder="例如：student@scu.edu.tw" maxlength="100">
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <div class="mb-3">
+                      <label for="phone" class="form-label">
+                        <i class="fas fa-phone me-1"></i>聯絡電話
+                      </label>
+                      <input type="tel" class="form-control" id="phone" name="phone" 
+                             placeholder="例如：0912345678" maxlength="20">
+                    </div>
+                  </div>
+                </div>
+
+                <div class="row">
+                  <div class="col-md-6">
+                    <div class="mb-3">
+                      <label for="department" class="form-label">
+                        <i class="fas fa-building me-1"></i>所屬部門 <span class="text-danger">*</span>
+                      </label>
+                      <select class="form-select" id="department" name="department" required>
+                        <option value="資料科學系" selected>資料科學系</option>
+                        <option value="財務部">財務部</option>
+                        <option value="活動部">活動部</option>
+                        <option value="美宣部">美宣部</option>
+                        <option value="公關部">公關部</option>
+                        <option value="文書部">文書部</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <div class="mb-3">
+                      <label for="grade" class="form-label">
+                        <i class="fas fa-graduation-cap me-1"></i>年級
+                      </label>
+                      <select class="form-select" id="grade" name="grade">
+                        <option value="">請選擇年級</option>
+                        <option value="1">大一</option>
+                        <option value="2">大二</option>
+                        <option value="3">大三</option>
+                        <option value="4">大四</option>
+                        <option value="5">研一</option>
+                        <option value="6">研二</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 系統權限 -->
+              <div class="mb-4">
+                <h6 class="border-bottom pb-2 mb-3">
+                  <i class="fas fa-shield-alt me-2"></i>系統權限
+                </h6>
+
+                <div class="row">
+                  <div class="col-md-6">
+                    <div class="mb-3">
+                      <label for="role" class="form-label">
+                        <i class="fas fa-user-tag me-1"></i>角色 <span class="text-danger">*</span>
+                      </label>
+                      <select class="form-select" id="role" name="role" required>
+                        <option value="member" selected>一般成員</option>
+                        <option value="admin">系統管理員</option>
+                        <option value="finance">財務部成員</option>
+                        <option value="activity">活動部成員</option>
+                        <option value="design">美宣部成員</option>
+                        <option value="pr">公關部成員</option>
+                        <option value="secretary">文書部成員</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <div class="mb-3">
+                      <label class="form-label">
+                        <i class="fas fa-toggle-on me-1"></i>帳號狀態
+                      </label>
+                      <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="isActive" name="is_active" checked>
+                        <label class="form-check-label" for="isActive">
+                          啟用帳號
+                        </label>
+                        <div class="form-text">取消勾選將建立停用狀態的帳號</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 提交按鈕 -->
+              <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                <a href="/dashboard" class="btn btn-secondary me-md-2">
+                  <i class="fas fa-times me-2"></i>取消
+                </a>
+                <button type="submit" class="btn btn-success" id="submitBtn">
+                  <i class="fas fa-user-plus me-2"></i>建立成員
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <footer class="mt-5 text-center">
+      東吳大學資料科學系學會 &copy; 2025
+    </footer>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="/assets/js/globalErrorHandler.js"></script>
+  <script src="/assets/js/common.js"></script>
+  
+  <script>
+    // 頁面載入完成後執行
+    document.addEventListener('DOMContentLoaded', function() {
+      // 檢查管理員權限
+      checkAdminPermission();
+    });
+
+    // 檢查管理員權限
+    async function checkAdminPermission() {
+      try {
+        const response = await fetch('/api/auth/check', {
+          method: 'GET',
+          credentials: 'include'
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          if (!data.authenticated || data.user.role !== 'admin') {
+            showAlert('您沒有權限訪問此頁面', 'danger');
+            setTimeout(() => {
+              window.location.href = '/dashboard';
+            }, 2000);
+          }
+        } else {
+          window.location.href = '/';
+        }
+      } catch (error) {
+        console.error('權限檢查失敗:', error);
+        window.location.href = '/';
+      }
+    }
+
+    // 切換密碼顯示/隱藏
+    function togglePassword(inputId) {
+      const input = document.getElementById(inputId);
+      const icon = document.getElementById(inputId + 'ToggleIcon');
+      
+      if (input.type === 'password') {
+        input.type = 'text';
+        icon.className = 'fas fa-eye-slash';
+      } else {
+        input.type = 'password';
+        icon.className = 'fas fa-eye';
+      }
+    }
+
+    // 表單提交處理
+    document.getElementById('addMemberForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+
+      // 清除之前的訊息
+      clearAlerts();
+
+      // 收集表單資料
+      const formData = new FormData(this);
+      const data = {};
+      
+      // 轉換表單數據
+      for (let [key, value] of formData.entries()) {
+        data[key] = value.trim();
+      }
+      
+      // 處理 checkbox
+      data.is_active = document.getElementById('isActive').checked ? 1 : 0;
+
+      // 基本驗證
+      if (!validateFormData(data)) {
+        return;
+      }
+
+      // 顯示載入狀態
+      const submitBtn = document.getElementById('submitBtn');
+      const originalText = submitBtn.innerHTML;
+      submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>建立中...';
+      submitBtn.disabled = true;
+
+      try {
+        // 發送請求
+        const response = await fetch('/api/admin/users', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include',
+          body: JSON.stringify(data)
+        });
+
+        const result = await response.json();
+
+        if (response.ok && result.success) {
+          // 成功
+          showAlert('成員建立成功！即將返回首頁...', 'success');
+          
+          // 清空表單
+          this.reset();
+          document.getElementById('department').value = '資料科學系';
+          document.getElementById('role').value = 'member';
+          document.getElementById('isActive').checked = true;
+          
+          // 2秒後跳轉
+          setTimeout(() => {
+            window.location.href = '/dashboard';
+          }, 2000);
+        } else {
+          // 失敗
+          showAlert(result.message || '建立成員失敗', 'danger');
+        }
+
+      } catch (error) {
+        console.error('建立成員錯誤:', error);
+        showAlert('系統錯誤，請稍後再試', 'danger');
+      } finally {
+        // 恢復按鈕狀態
+        submitBtn.innerHTML = originalText;
+        submitBtn.disabled = false;
+      }
+    });
+
+    // 驗證表單資料
+    function validateFormData(data) {
+      // 必填欄位檢查
+      const requiredFields = ['username', 'password', 'full_name', 'student_id', 'department', 'role'];
+      for (const field of requiredFields) {
+        if (!data[field]) {
+          showAlert(`請填寫${getFieldName(field)}`, 'warning');
+          return false;
+        }
+      }
+
+      // 帳號格式驗證
+      if (!/^[a-zA-Z0-9_]+$/.test(data.username)) {
+        showAlert('帳號只能包含英文字母、數字和底線', 'warning');
+        return false;
+      }
+
+      // 密碼長度驗證
+      if (data.password.length < 6) {
+        showAlert('密碼至少需要6個字符', 'warning');
+        return false;
+      }
+
+      // 學號格式驗證（假設8位數字或字母數字組合）
+      if (data.student_id && (data.student_id.length < 3 || data.student_id.length > 20)) {
+        showAlert('學號格式不正確', 'warning');
+        return false;
+      }
+
+      // 電子郵件格式驗證
+      if (data.email) {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(data.email)) {
+          showAlert('電子郵件格式不正確', 'warning');
+          return false;
+        }
+      }
+
+      return true;
+    }
+
+    // 取得欄位中文名稱
+    function getFieldName(field) {
+      const fieldNames = {
+        'username': '帳號',
+        'password': '密碼',
+        'full_name': '姓名',
+        'student_id': '學號',
+        'department': '所屬部門',
+        'role': '角色'
+      };
+      return fieldNames[field] || field;
+    }
+
+    // 顯示提示訊息
+    function showAlert(message, type = 'info') {
+      const alertContainer = document.getElementById('alertContainer');
+      const alertDiv = document.createElement('div');
+      alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+      alertDiv.innerHTML = `
+        <i class="fas fa-${getAlertIcon(type)} me-2"></i>
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+      `;
+      alertContainer.appendChild(alertDiv);
+
+      // 自動消失（除了錯誤訊息）
+      if (type !== 'danger') {
+        setTimeout(() => {
+          const alert = bootstrap.Alert.getOrCreateInstance(alertDiv);
+          alert.close();
+        }, 5000);
+      }
+
+      // 滾動到頂部顯示訊息
+      alertContainer.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    // 取得提示圖示
+    function getAlertIcon(type) {
+      const icons = {
+        'success': 'check-circle',
+        'danger': 'exclamation-triangle',
+        'warning': 'exclamation-circle',
+        'info': 'info-circle'
+      };
+      return icons[type] || 'info-circle';
+    }
+
+    // 清除所有提示訊息
+    function clearAlerts() {
+      const alertContainer = document.getElementById('alertContainer');
+      alertContainer.innerHTML = '';
+    }
+  </script>
+</body>
+
+</html> 

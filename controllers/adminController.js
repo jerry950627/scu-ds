@@ -16,12 +16,19 @@ class AdminController extends BaseController {
      */
     static getUsers = BaseController.asyncHandler(async (req, res) => {
         try {
-            const sql = `
-                SELECT id, username, name, email, role, created_at, updated_at, last_login
-                FROM users 
-                WHERE deleted_at IS NULL 
-                ORDER BY created_at DESC
-            `;
+                    const sql = `
+            SELECT 
+                id, 
+                username, 
+                full_name, 
+                student_id, 
+                role, 
+                is_active, 
+                created_at
+            FROM users 
+            WHERE 1=1
+            ORDER BY created_at DESC
+        `;
             
             const users = await DatabaseHelper.all(sql, []);
             
@@ -74,42 +81,109 @@ class AdminController extends BaseController {
      */
     static createUser = BaseController.asyncHandler(async (req, res) => {
         try {
-            const { username, password, name, email, role } = req.body;
+                    const { 
+            username, 
+            password, 
+            full_name, 
+            student_id, 
+            role, 
+            is_active 
+        } = req.body;
+        
+        // 驗證必填欄位
+        if (!username || !password || !full_name || !student_id || !role) {
+            return res.status(400).json({
+                success: false,
+                message: '帳號、密碼、姓名、學號和角色為必填欄位'
+            });
+        }
             
-            // 驗證必填欄位
-            if (!username || !password || !name || !email) {
+            // 帳號格式驗證
+            if (!/^[a-zA-Z0-9_]+$/.test(username)) {
                 return res.status(400).json({
                     success: false,
-                    message: '用戶名、密碼、姓名和電子郵件為必填欄位'
+                    message: '帳號只能包含英文字母、數字和底線'
                 });
             }
             
-            // 檢查用戶名是否已存在
-            const checkSql = 'SELECT id FROM users WHERE username = ? AND deleted_at IS NULL';
-            const existingUser = await DatabaseHelper.get(checkSql, [username]);
-            
-            if (existingUser) {
+            // 密碼長度驗證
+            if (password.length < 6) {
                 return res.status(400).json({
                     success: false,
-                    message: '用戶名已存在'
+                    message: '密碼至少需要6個字符'
                 });
             }
+            
+            // 學號格式驗證
+            if (!/^\d{8}$/.test(student_id)) {
+                return res.status(400).json({
+                    success: false,
+                    message: '學號格式不正確，應為8位數字'
+                });
+            }
+            
+                    // 檢查帳號是否已存在
+        const checkUserSql = 'SELECT id FROM users WHERE username = ?';
+        const existingUser = await DatabaseHelper.get(checkUserSql, [username]);
+        
+        if (existingUser) {
+            return res.status(400).json({
+                success: false,
+                message: '帳號已存在'
+            });
+        }
+        
+        // 檢查學號是否已存在
+        const checkStudentSql = 'SELECT id FROM users WHERE student_id = ?';
+        const existingStudent = await DatabaseHelper.get(checkStudentSql, [student_id]);
+        
+        if (existingStudent) {
+            return res.status(400).json({
+                success: false,
+                message: '學號已存在'
+            });
+        }
             
             // 加密密碼
             const hashedPassword = await bcrypt.hash(password, 12);
             
-            const sql = `
-                INSERT INTO users (username, password, name, email, role, created_at)
-                VALUES (?, ?, ?, ?, ?, datetime('now'))
-            `;
+                    const sql = `
+            INSERT INTO users (
+                username, 
+                password_hash, 
+                full_name, 
+                student_id, 
+                role, 
+                is_active, 
+                created_at
+            )
+            VALUES (?, ?, ?, ?, ?, ?, datetime('now'))
+        `;
+        
+        const result = await DatabaseHelper.run(sql, [
+            username, 
+            hashedPassword, 
+            full_name, 
+            student_id, 
+            role, 
+            is_active ? 1 : 0
+        ]);
             
-            const result = await DatabaseHelper.run(sql, [username, hashedPassword, name, email, role || 'user']);
+            // 記錄操作日誌
+            await BaseController.logAction(req, 'USER_CREATE', `創建用戶: ${username} (${full_name})`);
             
-            res.json({
-                success: true,
-                data: { id: result.lastID },
-                message: '用戶創建成功'
-            });
+                    res.json({
+            success: true,
+            data: { 
+                id: result.lastID,
+                username,
+                full_name,
+                student_id,
+                role,
+                is_active: is_active ? 1 : 0
+            },
+            message: '成員新增成功'
+        });
         } catch (error) {
             console.error('創建用戶失敗:', error);
             res.status(500).json({
@@ -214,7 +288,7 @@ class AdminController extends BaseController {
             
             const sql = `
                 UPDATE users 
-                SET password = ?, updated_at = datetime('now')
+                SET password_hash = ?, updated_at = datetime('now')
                 WHERE id = ?
             `;
             

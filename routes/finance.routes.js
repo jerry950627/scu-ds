@@ -20,7 +20,7 @@ router.get('/',
 
 // 創建新財務記錄
 router.post('/', 
-    requireRole(['admin', 'finance']),
+    requireRole(['admin', 'finance', 'member']),
     singleUpload('DOCUMENT', 'receipt'),
     validateFinance,
     logActivity('創建財務記錄'),
@@ -52,6 +52,16 @@ router.get('/records',
     validatePagination,
     validateDateRange,
     FinanceController.getRecords
+);
+
+// 創建新財務記錄 (別名路由)
+router.post('/records', 
+    requireRole(['admin', 'finance', 'member']),
+    singleUpload('DOCUMENT', 'receipt'),
+    validateFinance,
+    logActivity('創建財務記錄'),
+    preventDuplicateSubmission,
+    FinanceController.createRecord
 );
 
 // 獲取單個財務記錄詳情

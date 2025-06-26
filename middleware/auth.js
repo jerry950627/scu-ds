@@ -8,11 +8,21 @@ const DatabaseHelper = require('../utils/dbHelper');
 // 檢查是否已登入
 const isAuthenticated = (req, res, next) => {
     if (!req.session || !req.session.user) {
-        return res.status(401).json({
-            success: false,
-            message: '請先登入',
-            code: 'UNAUTHORIZED'
-        });
+        // 檢查是否為 API 請求
+        const isApiRequest = req.url.startsWith('/api/') || 
+                            req.get('Content-Type') === 'application/json' ||
+                            req.get('Accept')?.includes('application/json');
+        
+        if (isApiRequest) {
+            return res.status(401).json({
+                success: false,
+                message: '請先登入',
+                code: 'UNAUTHORIZED'
+            });
+        } else {
+            // 網頁請求重定向到登入頁面
+            return res.redirect('/?error=unauthorized');
+        }
     }
     next();
 };
@@ -20,19 +30,41 @@ const isAuthenticated = (req, res, next) => {
 // 檢查是否為管理員
 const isAdmin = (req, res, next) => {
     if (!req.session || !req.session.user) {
-        return res.status(401).json({
-            success: false,
-            message: '請先登入',
-            code: 'UNAUTHORIZED'
-        });
+        // 檢查是否為 API 請求
+        const isApiRequest = req.url.startsWith('/api/') || 
+                            req.get('Content-Type') === 'application/json' ||
+                            req.get('Accept')?.includes('application/json');
+        
+        if (isApiRequest) {
+            return res.status(401).json({
+                success: false,
+                message: '請先登入',
+                code: 'UNAUTHORIZED'
+            });
+        } else {
+            // 網頁請求重定向到登入頁面
+            return res.redirect('/?error=unauthorized');
+        }
     }
     
     if (req.session.user.role !== 'admin') {
-        return res.status(403).json({
-            success: false,
-            message: '權限不足，需要管理員權限',
-            code: 'FORBIDDEN'
-        });
+        // 檢查是否為 API 請求
+        const isApiRequest = req.url.startsWith('/api/') || 
+                            req.get('Content-Type') === 'application/json' ||
+                            req.get('Accept')?.includes('application/json');
+        
+        if (isApiRequest) {
+            return res.status(403).json({
+                success: false,
+                message: '權限不足，需要管理員權限',
+                code: 'FORBIDDEN'
+            });
+        } else {
+            // 網頁請求顯示錯誤頁面
+            const path = require('path');
+            const errorPagePath = path.join(__dirname, '../public/pages/error.html');
+            return res.status(403).sendFile(errorPagePath);
+        }
     }
     
     next();
@@ -189,11 +221,21 @@ const preventDuplicateSubmission = (identifier) => {
 // 檢查用戶是否啟用
 const isUserActive = async (req, res, next) => {
     if (!req.session || !req.session.user) {
-        return res.status(401).json({
-            success: false,
-            message: '請先登入',
-            code: 'UNAUTHORIZED'
-        });
+        // 檢查是否為 API 請求
+        const isApiRequest = req.url.startsWith('/api/') || 
+                            req.get('Content-Type') === 'application/json' ||
+                            req.get('Accept')?.includes('application/json');
+        
+        if (isApiRequest) {
+            return res.status(401).json({
+                success: false,
+                message: '請先登入',
+                code: 'UNAUTHORIZED'
+            });
+        } else {
+            // 網頁請求重定向到登入頁面
+            return res.redirect('/?error=unauthorized');
+        }
     }
     
     try {
@@ -204,21 +246,45 @@ const isUserActive = async (req, res, next) => {
         
         if (!user || !user.is_active) {
             req.session.destroy();
-            return res.status(403).json({
-                success: false,
-                message: '帳戶已被停用',
-                code: 'ACCOUNT_DISABLED'
-            });
+            
+            // 檢查是否為 API 請求
+            const isApiRequest = req.url.startsWith('/api/') || 
+                                req.get('Content-Type') === 'application/json' ||
+                                req.get('Accept')?.includes('application/json');
+            
+            if (isApiRequest) {
+                return res.status(403).json({
+                    success: false,
+                    message: '帳戶已被停用',
+                    code: 'ACCOUNT_DISABLED'
+                });
+            } else {
+                // 網頁請求重定向到登入頁面並顯示錯誤訊息
+                return res.redirect('/?error=account_disabled');
+            }
         }
         
         next();
     } catch (error) {
         console.error('檢查用戶狀態錯誤:', error);
-        return res.status(500).json({
-            success: false,
-            message: '用戶狀態檢查失敗',
-            code: 'INTERNAL_ERROR'
-        });
+        
+        // 檢查是否為 API 請求
+        const isApiRequest = req.url.startsWith('/api/') || 
+                            req.get('Content-Type') === 'application/json' ||
+                            req.get('Accept')?.includes('application/json');
+        
+        if (isApiRequest) {
+            return res.status(500).json({
+                success: false,
+                message: '用戶狀態檢查失敗',
+                code: 'INTERNAL_ERROR'
+            });
+        } else {
+            // 網頁請求顯示錯誤頁面
+            const path = require('path');
+            const errorPagePath = path.join(__dirname, '../public/pages/error.html');
+            return res.status(500).sendFile(errorPagePath);
+        }
     }
 };
 

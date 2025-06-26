@@ -4,141 +4,321 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>歷屆系學會與紀錄管理</title>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
-  <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
+  <title>歷史資料管理</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/css/bootstrap.min.css"
+    integrity="sha384-4Q6Gf2aSP4eDXB8Miphtr37CMZZQ5oXLH2yaXMJ2w8e2ZtHTl7GptT4jmndRuHDT" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <link rel="stylesheet" href="/assets/css/style.css">
   <style>
-    body {
-      background-color: #fff0f5;
-      font-family: 'Noto Sans TC', sans-serif;
-    }
-
-    .nav-tabs .nav-link.active {
-      background-color: #ffb6c1;
-      border-color: #ffb6c1;
-      color: #4a3b47;
-    }
-
-    .btn-pink {
-      background-color: #e75480;
-      color: white;
-      border: none;
-    }
-
-    .btn-pink:hover {
-      background-color: #c74375;
-    }
-
-    .card {
-      border: none;
-      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-      border-radius: 10px;
-    }
-
-    .card-header {
-      background-color: #ffb6c1;
-      font-weight: bold;
-    }
-
     .profile-pic {
       width: 60px;
       height: 60px;
       border-radius: 50%;
       object-fit: cover;
-      border: 2px solid #e75480;
+      border: 2px solid var(--primary-pink);
+      transition: all 0.3s ease;
+    }
+    
+    .profile-pic:hover {
+      transform: scale(1.1);
+      border-color: var(--secondary-pink);
+    }
+    
+    .nav-tabs-modern {
+      border: none;
+      margin-bottom: 2rem;
+    }
+    
+    .nav-tabs-modern .nav-link {
+      background: rgba(255, 255, 255, 0.8);
+      border: 1px solid rgba(255, 107, 157, 0.2);
+      border-radius: var(--radius-md) var(--radius-md) 0 0;
+      color: var(--gray-800);
+      font-weight: 500;
+      margin-right: 0.5rem;
+      transition: all 0.3s ease;
+    }
+    
+    .nav-tabs-modern .nav-link:hover {
+      background: rgba(255, 107, 157, 0.1);
+      border-color: var(--primary-pink);
+    }
+    
+    .nav-tabs-modern .nav-link.active {
+      background: linear-gradient(135deg, var(--primary-pink), var(--secondary-pink));
+      border-color: var(--primary-pink);
+      color: var(--white);
+    }
+    
+    .officer-card {
+      background: rgba(255, 255, 255, 0.9);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      border-radius: var(--radius-lg);
+      padding: 1.5rem;
+      text-align: center;
+      transition: all 0.3s ease;
+      height: 100%;
+    }
+    
+    .officer-card:hover {
+      transform: translateY(-5px);
+      box-shadow: var(--shadow-medium);
+      border-color: rgba(255, 107, 157, 0.4);
+    }
+    
+    /* 修正表格和按鈕樣式 */
+    .btn-group-modern {
+      display: flex;
+      gap: 0.25rem;
+      justify-content: center;
+      flex-wrap: nowrap;
+    }
+    
+    .table-responsive {
+      border-radius: var(--radius-md);
+      overflow: hidden;
+    }
+    
+    .table-modern th {
+      text-align: center;
+      font-weight: 600;
+      font-size: 0.9rem;
+    }
+    
+    .table-modern td {
+      vertical-align: middle;
+      font-size: 0.85rem;
+    }
+    
+    .table-modern td:last-child {
+      text-align: center;
+    }
+    
+    /* 響應式優化 */
+    @media (max-width: 768px) {
+      .btn-group-modern {
+        flex-direction: column;
+        gap: 0.1rem;
+      }
+      
+      .btn-group-modern .btn-sm {
+        font-size: 0.7rem;
+        padding: 0.25rem 0.5rem;
+      }
+      
+      .table-modern {
+        font-size: 0.75rem;
+      }
+      
+      .nav-tabs-modern .nav-link {
+        font-size: 0.8rem;
+        padding: 0.5rem 0.75rem;
+      }
     }
   </style>
 </head>
 
 <body>
   <div class="container py-5">
-    <a href="/dashboard" class="btn btn-light">🏠 首頁</a>
-    <a href="/activity" class="btn btn-dark">活動部</a>
-    <a href="/design" class="btn btn-info">美宣部</a>
-    <a href="/pr" class="btn btn-info">公關部</a>
-    <a href="/secretary" class="btn btn-info">文書部</a>
-    <a href="/finance" class="btn btn-info">財務部</a>
-    <a href="/admin" class="btn btn-dark">系統管理</a>
-    <h1 class="text-center mb-4">📚 歷屆系學會與紀錄管理</h1>
+    <!-- 導航按鈕 -->
+    <div class="d-flex justify-content-center flex-wrap gap-3 mb-4">
+      <a href="/dashboard" class="btn btn-light">🏠 首頁</a>
+      <a href="/activity" class="btn btn-info">活動部</a>
+      <a href="/design" class="btn btn-info">美宣部</a>
+      <a href="/pr" class="btn btn-info">公關部</a>
+      <a href="/secretary" class="btn btn-info">文書部</a>
+      <a href="/finance" class="btn btn-info">財務部</a>
+      <a href="/admin" class="btn btn-dark">系統管理</a>
+    </div>
+    
+    <div class="text-center mb-4">
+      <h1>📊 歷史資料管理</h1>
+    </div>
 
-    <ul class="nav nav-tabs mb-4" id="historyTab" role="tablist">
+    <ul class="nav nav-tabs" id="historyTab" role="tablist">
       <li class="nav-item" role="presentation">
         <button class="nav-link active" id="history-records-tab" data-bs-toggle="tab" data-bs-target="#history-records"
-          type="button" role="tab">📝 修改歷史紀錄</button>
+          type="button" role="tab">
+          <i class="fas fa-history me-2"></i>修改歷史紀錄
+        </button>
       </li>
       <li class="nav-item" role="presentation">
         <button class="nav-link" id="past-officers-tab" data-bs-toggle="tab" data-bs-target="#past-officers"
-          type="button" role="tab">👥 歷屆幹部資料</button>
+          type="button" role="tab">
+          <i class="fas fa-users me-2"></i>歷屆幹部資料
+        </button>
       </li>
     </ul>
 
     <div class="tab-content" id="historyTabContent">
-      <!-- 歷史紀錄 -->
+            <!-- 歷史紀錄 -->
       <div class="tab-pane fade show active" id="history-records" role="tabpanel">
         <div class="card mb-4">
-          <div class="card-header">🗂️ 系統修改歷史紀錄</div>
+          <div class="card-header d-flex justify-content-between align-items-center">
+            <span>📋 系統修改歷史紀錄</span>
+            <button class="btn btn-success btn-sm" onclick="showAddRecordModal()">
+              <i class="fas fa-plus me-2"></i>新增操作紀錄
+            </button>
+          </div>
           <div class="card-body">
-            <table id="historyTable" class="table table-bordered table-striped">
-              <thead class="table-light">
-                <tr>
-                  <th>日期</th>
-                  <th>操作人員</th>
-                  <th>動作內容</th>
-                  <th>操作</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td>2025-05-10</td>
-                  <td>王老師</td>
-                  <td>新增活動部資料</td>
-                  <td>
-                    <button class="btn btn-warning btn-sm">編輯</button>
-                    <button class="btn btn-danger btn-sm">刪除</button>
-                  </td>
-                </tr>
-                <tr>
-                  <td>2025-05-05</td>
-                  <td>張老師</td>
-                  <td>修正財務紀錄欄位</td>
-                  <td>
-                    <button class="btn btn-warning btn-sm">編輯</button>
-                    <button class="btn btn-danger btn-sm">刪除</button>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+            <!-- 搜索和篩選 -->
+            <div class="mb-3">
+              <div class="row">
+                <div class="col-md-8">
+                  <div class="input-group">
+                    <span class="input-group-text">
+                      <i class="fas fa-search"></i>
+                    </span>
+                    <input type="text" class="form-control" id="searchInput" placeholder="搜索帳號、姓名或操作內容..." onkeyup="filterRecords()">
+                    <button class="btn btn-outline-secondary" type="button" onclick="clearSearch()">
+                      <i class="fas fa-times"></i>
+                    </button>
+                  </div>
+                </div>
+                <div class="col-md-4 text-end">
+                  <button class="btn btn-outline-secondary btn-sm" onclick="showAllRecords()">
+                    <i class="fas fa-list me-1"></i>顯示全部
+                  </button>
+                </div>
+              </div>
+              
+              <!-- 快速篩選按鈕 -->
+              <div class="mt-2">
+                <small class="text-muted me-2">快速篩選：</small>
+                <button class="btn btn-outline-primary btn-sm me-1" onclick="filterByDepartment('finance')">
+                  <i class="fas fa-chart-line me-1"></i>財務部
+                </button>
+                <button class="btn btn-outline-primary btn-sm me-1" onclick="filterByDepartment('design')">
+                  <i class="fas fa-palette me-1"></i>美宣部
+                </button>
+                <button class="btn btn-outline-primary btn-sm me-1" onclick="filterByDepartment('activity')">
+                  <i class="fas fa-calendar-star me-1"></i>活動部
+                </button>
+                <button class="btn btn-outline-primary btn-sm me-1" onclick="filterByDepartment('secretary')">
+                  <i class="fas fa-file-contract me-1"></i>文書部
+                </button>
+              </div>
+            </div>
+            
+            <!-- 表格 -->
+            <div class="table-responsive">
+              <table id="historyTable" class="table table-hover">
+                <thead>
+                  <tr>
+                    <th>日期</th>
+                    <th>帳號</th>
+                    <th>名稱</th>
+                    <th>修改內容</th>
+                    <th class="text-end">操作</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr data-record-id="1">
+                    <td>2025-05-10</td>
+                    <td>admin001</td>
+                    <td>王管理員</td>
+                    <td>新增財務部資料：收入項目「期末聚餐費用」NT$15,000</td>
+                    <td class="text-end">
+                      <button class="btn btn-warning btn-sm me-1" onclick="editRecord(1)">
+                        <i class="fas fa-edit me-1"></i>編輯
+                      </button>
+                      <button class="btn btn-danger btn-sm" onclick="deleteRecord(1)">
+                        <i class="fas fa-trash me-1"></i>刪除
+                      </button>
+                    </td>
+                  </tr>
+                  <tr data-record-id="2">
+                    <td>2025-05-05</td>
+                    <td>finance01</td>
+                    <td>張財務</td>
+                    <td>修正財務紀錄：調整「迎新活動」支出金額從NT$8,000改為NT$8,500</td>
+                    <td class="text-end">
+                      <button class="btn btn-warning btn-sm me-1" onclick="editRecord(2)">
+                        <i class="fas fa-edit me-1"></i>編輯
+                      </button>
+                      <button class="btn btn-danger btn-sm" onclick="deleteRecord(2)">
+                        <i class="fas fa-trash me-1"></i>刪除
+                      </button>
+                    </td>
+                  </tr>
+                  <tr data-record-id="3">
+                    <td>2025-04-28</td>
+                    <td>design01</td>
+                    <td>李美宣</td>
+                    <td>新增美宣部作品：上傳「資科週海報設計」及「社團博覽會橫幅」</td>
+                    <td class="text-end">
+                      <button class="btn btn-warning btn-sm me-1" onclick="editRecord(3)">
+                        <i class="fas fa-edit me-1"></i>編輯
+                      </button>
+                      <button class="btn btn-danger btn-sm" onclick="deleteRecord(3)">
+                        <i class="fas fa-trash me-1"></i>刪除
+                      </button>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       </div>
 
       <!-- 歷屆幹部 -->
       <div class="tab-pane fade" id="past-officers" role="tabpanel">
-        <div class="card">
-          <div class="card-header">📋 各屆系學會部門成員</div>
-          <div class="card-body">
+        <div class="modern-card animate-fade-in-up" style="animation-delay: 0.2s;">
+          <div class="modern-card-header">
+            <i class="fas fa-graduation-cap me-2"></i>
+            各屆系學會部門成員
+          </div>
+          <div class="modern-card-body">
             <div class="row g-4">
               <div class="col-md-4">
-                <div class="card p-3">
-                  <div class="text-center">
-                    <img src="https://via.placeholder.com/60" alt="幹部頭像" class="profile-pic mb-2">
-                    <h5>林美宣</h5>
-                    <p class="mb-1">部門：美宣部</p>
-                    <p class="text-muted small">「一起讓設計美化生活！」</p>
-                  </div>
+                <div class="officer-card">
+                  <img src="https://via.placeholder.com/60" alt="幹部頭像" class="profile-pic mb-3">
+                  <h5 style="color: var(--gray-800); font-weight: 600;">林美宣</h5>
+                  <div class="badge-modern mb-2" style="font-size: 0.8rem;">美宣部</div>
+                  <p class="text-muted small mb-0">「一起讓設計美化生活！」</p>
                 </div>
               </div>
               <div class="col-md-4">
-                <div class="card p-3">
-                  <div class="text-center">
-                    <img src="https://via.placeholder.com/60" alt="幹部頭像" class="profile-pic mb-2">
-                    <h5>張文書</h5>
-                    <p class="mb-1">部門：文書部</p>
-                    <p class="text-muted small">「紀錄是一種歷史的傳承。」</p>
-                  </div>
+                <div class="officer-card">
+                  <img src="https://via.placeholder.com/60" alt="幹部頭像" class="profile-pic mb-3">
+                  <h5 style="color: var(--gray-800); font-weight: 600;">張文書</h5>
+                  <div class="badge-modern mb-2" style="font-size: 0.8rem;">文書部</div>
+                  <p class="text-muted small mb-0">「紀錄是一種歷史的傳承。」</p>
                 </div>
               </div>
-              <!-- 更多幹部可持續新增 -->
+              <div class="col-md-4">
+                <div class="officer-card">
+                  <img src="https://via.placeholder.com/60" alt="幹部頭像" class="profile-pic mb-3">
+                  <h5 style="color: var(--gray-800); font-weight: 600;">陳財務</h5>
+                  <div class="badge-modern mb-2" style="font-size: 0.8rem;">財務部</div>
+                  <p class="text-muted small mb-0">「數據背後的故事最精彩。」</p>
+                </div>
+                  </div>
+              <div class="col-md-4">
+                <div class="officer-card">
+                  <img src="https://via.placeholder.com/60" alt="幹部頭像" class="profile-pic mb-3">
+                  <h5 style="color: var(--gray-800); font-weight: 600;">李活動</h5>
+                  <div class="badge-modern mb-2" style="font-size: 0.8rem;">活動部</div>
+                  <p class="text-muted small mb-0">「創造美好回憶是我們的使命！」</p>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="officer-card">
+                  <img src="https://via.placeholder.com/60" alt="幹部頭像" class="profile-pic mb-3">
+                  <h5 style="color: var(--gray-800); font-weight: 600;">王公關</h5>
+                  <div class="badge-modern mb-2" style="font-size: 0.8rem;">公關部</div>
+                  <p class="text-muted small mb-0">「溝通讓世界更美好。」</p>
+                </div>
+                  </div>
+              <div class="col-md-4">
+                <div class="officer-card">
+                  <img src="https://via.placeholder.com/60" alt="幹部頭像" class="profile-pic mb-3">
+                  <h5 style="color: var(--gray-800); font-weight: 600;">劉會長</h5>
+                  <div class="badge-modern mb-2" style="font-size: 0.8rem;">會長</div>
+                  <p class="text-muted small mb-0">「帶領團隊勇敢前進！」</p>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -146,18 +326,428 @@
     </div>
   </div>
 
+  <!-- 編輯紀錄模態框 -->
+  <div class="modal fade" id="editRecordModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">
+            <i class="fas fa-edit me-2"></i>編輯歷史紀錄
+          </h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+                 <div class="modal-body">
+           <form id="editRecordForm">
+             <input type="hidden" id="editRecordId">
+             <div class="row">
+               <div class="col-md-6">
+                 <div class="mb-3">
+                   <label for="editDate" class="form-label">
+                     <i class="fas fa-calendar me-1"></i>日期
+                   </label>
+                   <input type="date" class="form-control" id="editDate" required>
+                 </div>
+               </div>
+               <div class="col-md-6">
+                 <div class="mb-3">
+                   <label for="editAccount" class="form-label">
+                     <i class="fas fa-user me-1"></i>帳號
+                   </label>
+                   <input type="text" class="form-control" id="editAccount" placeholder="例如：admin001" required>
+                 </div>
+               </div>
+             </div>
+             <div class="mb-3">
+               <label for="editName" class="form-label">
+                 <i class="fas fa-id-card me-1"></i>姓名
+               </label>
+               <input type="text" class="form-control" id="editName" placeholder="例如：王管理員" required>
+             </div>
+             <div class="mb-3">
+               <label for="editContent" class="form-label">
+                 <i class="fas fa-edit me-1"></i>修改內容
+               </label>
+               <textarea class="form-control" id="editContent" rows="4" placeholder="請詳細描述操作內容，例如：新增財務部資料：收入項目「期末聚餐費用」NT$15,000" required></textarea>
+               <div class="form-text">請詳細記錄具體的操作內容，包含金額、項目名稱等資訊</div>
+             </div>
+           </form>
+         </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary-modern" data-bs-dismiss="modal">取消</button>
+          <button type="button" class="btn-primary-modern" onclick="saveRecord()">儲存變更</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 新增紀錄模態框 -->
+  <div class="modal fade" id="addRecordModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">
+            <i class="fas fa-plus me-2"></i>新增歷史紀錄
+          </h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+                 <div class="modal-body">
+           <form id="addRecordForm">
+             <div class="row">
+               <div class="col-md-6">
+                 <div class="mb-3">
+                   <label for="addDate" class="form-label">
+                     <i class="fas fa-calendar me-1"></i>日期
+                   </label>
+                   <input type="date" class="form-control" id="addDate" required>
+                 </div>
+               </div>
+               <div class="col-md-6">
+                 <div class="mb-3">
+                   <label for="addAccount" class="form-label">
+                     <i class="fas fa-user me-1"></i>帳號
+                   </label>
+                   <input type="text" class="form-control" id="addAccount" placeholder="例如：admin001" required>
+                 </div>
+               </div>
+             </div>
+             <div class="mb-3">
+               <label for="addName" class="form-label">
+                 <i class="fas fa-id-card me-1"></i>姓名
+               </label>
+               <input type="text" class="form-control" id="addName" placeholder="例如：王管理員" required>
+             </div>
+             <div class="mb-3">
+               <label for="addContent" class="form-label">
+                 <i class="fas fa-edit me-1"></i>修改內容
+               </label>
+               <textarea class="form-control" id="addContent" rows="4" placeholder="請詳細描述操作內容，例如：新增財務部資料：收入項目「期末聚餐費用」NT$15,000" required></textarea>
+               <div class="form-text">請詳細記錄具體的操作內容，包含金額、項目名稱等資訊</div>
+             </div>
+           </form>
+         </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary-modern" data-bs-dismiss="modal">取消</button>
+          <button type="button" class="btn-primary-modern" onclick="addNewRecord()">新增紀錄</button>
+        </div>
+      </div>
+    </div>
+  </div>
   
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
 <script src="/assets/js/globalErrorHandler.js"></script>
     <script src="/assets/js/common.js"></script>
     <script src="/assets/js/history.js"></script>
+  
   <script>
-    $(document).ready(function () {
-      $('#historyTable').DataTable();
+    // 現代化表格初始化
+    $(document).ready(function() {
+      console.log('📊 歷史資料頁面載入完成');
+      
+      // 設置今天的日期為預設值
+      const today = new Date().toISOString().split('T')[0];
+      $('#addDate').val(today);
+      
+      // 初始化搜索統計
+      const totalRows = document.querySelectorAll('#historyTable tbody tr').length;
+      updateSearchStats(totalRows, totalRows);
+      
+      // 添加表格互動效果
+      $('.table-modern tbody tr').hover(
+        function() {
+          $(this).addClass('table-row-hover');
+        },
+        function() {
+          $(this).removeClass('table-row-hover');
+        }
+      );
+      
+      // Tab切換動畫
+      $('button[data-bs-toggle="tab"]').on('shown.bs.tab', function() {
+        const activePane = $($(this).attr('data-bs-target'));
+        activePane.addClass('animate-fade-in-up');
+      });
     });
+
+    // 顯示新增紀錄模態框
+    function showAddRecordModal() {
+      const modal = new bootstrap.Modal(document.getElementById('addRecordModal'));
+      // 重置表單
+      document.getElementById('addRecordForm').reset();
+      const today = new Date().toISOString().split('T')[0];
+      document.getElementById('addDate').value = today;
+      modal.show();
+    }
+
+         // 編輯紀錄
+     function editRecord(recordId) {
+       const row = document.querySelector(`tr[data-record-id="${recordId}"]`);
+       if (!row) return;
+       
+       const cells = row.querySelectorAll('td');
+       const date = cells[0].textContent.trim();
+       const account = cells[1].textContent.trim();
+       const name = cells[2].textContent.trim();
+       const content = cells[3].textContent.trim();
+       
+       // 填入編輯表單
+       document.getElementById('editRecordId').value = recordId;
+       document.getElementById('editDate').value = convertDateFormat(date);
+       document.getElementById('editAccount').value = account;
+       document.getElementById('editName').value = name;
+       document.getElementById('editContent').value = content;
+       
+       // 顯示模態框
+       const modal = new bootstrap.Modal(document.getElementById('editRecordModal'));
+       modal.show();
+     }
+
+         // 刪除紀錄
+     function deleteRecord(recordId) {
+       const row = document.querySelector(`tr[data-record-id="${recordId}"]`);
+       if (!row) return;
+       
+       const cells = row.querySelectorAll('td');
+       const account = cells[1].textContent.trim();
+       const name = cells[2].textContent.trim();
+       const content = cells[3].textContent.trim();
+       
+       if (confirm(`確定要刪除這條紀錄嗎？\n\n帳號：${account}\n姓名：${name}\n操作內容：${content}`)) {
+         // 添加刪除動畫
+         row.style.transition = 'all 0.3s ease';
+         row.style.opacity = '0';
+         row.style.transform = 'translateX(-100%)';
+         
+         setTimeout(() => {
+           row.remove();
+           showNotification('紀錄已成功刪除', 'success');
+         }, 300);
+       }
+     }
+
+         // 儲存編輯的紀錄
+     function saveRecord() {
+       const recordId = document.getElementById('editRecordId').value;
+       const date = document.getElementById('editDate').value;
+       const account = document.getElementById('editAccount').value;
+       const name = document.getElementById('editName').value;
+       const content = document.getElementById('editContent').value;
+       
+       if (!date || !account || !name || !content) {
+         showNotification('請填寫所有欄位', 'error');
+         return;
+       }
+       
+       // 驗證帳號格式
+       if (!/^[a-zA-Z0-9]+$/.test(account)) {
+         showNotification('帳號只能包含英文字母和數字', 'error');
+         return;
+       }
+       
+       // 更新表格
+       const row = document.querySelector(`tr[data-record-id="${recordId}"]`);
+       if (row) {
+         const cells = row.querySelectorAll('td');
+         cells[0].textContent = formatDateDisplay(date);
+         cells[1].textContent = account;
+         cells[2].textContent = name;
+         cells[3].textContent = content;
+         
+         // 添加更新動畫
+         row.style.backgroundColor = 'rgba(255, 107, 157, 0.1)';
+         setTimeout(() => {
+           row.style.backgroundColor = '';
+         }, 1000);
+       }
+       
+       // 關閉模態框
+       const modal = bootstrap.Modal.getInstance(document.getElementById('editRecordModal'));
+       modal.hide();
+       
+       showNotification('操作紀錄已成功更新', 'success');
+     }
+
+         // 新增紀錄
+     function addNewRecord() {
+       const date = document.getElementById('addDate').value;
+       const account = document.getElementById('addAccount').value;
+       const name = document.getElementById('addName').value;
+       const content = document.getElementById('addContent').value;
+       
+       if (!date || !account || !name || !content) {
+         showNotification('請填寫所有欄位', 'error');
+         return;
+       }
+       
+       // 驗證帳號格式
+       if (!/^[a-zA-Z0-9]+$/.test(account)) {
+         showNotification('帳號只能包含英文字母和數字', 'error');
+         return;
+       }
+       
+       // 生成新的 ID
+       const newId = Date.now();
+       const tbody = document.querySelector('#historyTable tbody');
+       
+       // 創建新行
+       const newRow = document.createElement('tr');
+       newRow.setAttribute('data-record-id', newId);
+       newRow.innerHTML = `
+         <td>${formatDateDisplay(date)}</td>
+         <td>${account}</td>
+         <td>${name}</td>
+         <td>${content}</td>
+         <td>
+           <div class="btn-group-modern">
+             <button class="btn-warning-modern btn-sm me-1" onclick="editRecord(${newId})">
+               <i class="fas fa-edit me-1"></i>編輯
+             </button>
+             <button class="btn-danger-modern btn-sm" onclick="deleteRecord(${newId})">
+               <i class="fas fa-trash me-1"></i>刪除
+             </button>
+           </div>
+         </td>
+       `;
+       
+       // 添加到表格頂部
+       tbody.insertBefore(newRow, tbody.firstChild);
+       
+       // 添加新增動畫
+       newRow.style.opacity = '0';
+       newRow.style.transform = 'translateY(-20px)';
+       setTimeout(() => {
+         newRow.style.transition = 'all 0.3s ease';
+         newRow.style.opacity = '1';
+         newRow.style.transform = 'translateY(0)';
+       }, 10);
+       
+       // 關閉模態框
+       const modal = bootstrap.Modal.getInstance(document.getElementById('addRecordModal'));
+       modal.hide();
+       
+       showNotification('操作紀錄已成功新增', 'success');
+     }
+
+    // 日期格式轉換輔助函數
+    function convertDateFormat(displayDate) {
+      // 從 "2025-05-10" 格式轉換為 input date 格式
+      return displayDate;
+    }
+
+    function formatDateDisplay(inputDate) {
+      // 從 input date 格式轉換為顯示格式
+      return inputDate;
+    }
+
+         // 搜索過濾功能
+     function filterRecords() {
+       const searchTerm = document.getElementById('searchInput').value.toLowerCase().trim();
+       const rows = document.querySelectorAll('#historyTable tbody tr');
+       let visibleCount = 0;
+       
+       rows.forEach(row => {
+         const cells = row.querySelectorAll('td');
+         const account = cells[1].textContent.toLowerCase();
+         const name = cells[2].textContent.toLowerCase();
+         const content = cells[3].textContent.toLowerCase();
+         
+         const matchFound = account.includes(searchTerm) || 
+                           name.includes(searchTerm) || 
+                           content.includes(searchTerm);
+         
+         if (matchFound) {
+           row.style.display = '';
+           visibleCount++;
+         } else {
+           row.style.display = 'none';
+         }
+       });
+       
+       // 顯示搜索結果統計
+       updateSearchStats(visibleCount, rows.length);
+     }
+
+     // 清除搜索
+     function clearSearch() {
+       document.getElementById('searchInput').value = '';
+       const rows = document.querySelectorAll('#historyTable tbody tr');
+       rows.forEach(row => {
+         row.style.display = '';
+       });
+       updateSearchStats(rows.length, rows.length);
+     }
+
+     // 按部門篩選
+     function filterByDepartment(department) {
+       const searchInput = document.getElementById('searchInput');
+       searchInput.value = department;
+       filterRecords();
+     }
+
+     // 顯示所有紀錄
+     function showAllRecords() {
+       clearSearch();
+     }
+
+     // 更新搜索統計
+     function updateSearchStats(visible, total) {
+       let statsElement = document.getElementById('searchStats');
+       if (!statsElement) {
+         statsElement = document.createElement('small');
+         statsElement.id = 'searchStats';
+         statsElement.className = 'text-muted';
+         document.querySelector('.table-responsive').parentNode.appendChild(statsElement);
+       }
+       
+       if (visible === total) {
+         statsElement.textContent = `顯示 ${total} 條紀錄`;
+       } else {
+         statsElement.textContent = `顯示 ${visible} 條紀錄（共 ${total} 條）`;
+       }
+     }
+
+     // 通知函數
+     function showNotification(message, type = 'info') {
+       // 創建通知元素
+       const notification = document.createElement('div');
+       notification.className = `alert alert-${type === 'success' ? 'success' : type === 'error' ? 'danger' : 'info'} position-fixed`;
+       notification.style.cssText = `
+         top: 20px;
+         right: 20px;
+         z-index: 9999;
+         min-width: 300px;
+         animation: slideInRight 0.3s ease;
+       `;
+       notification.innerHTML = `
+         <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-triangle' : 'info-circle'} me-2"></i>
+         ${message}
+       `;
+       
+       document.body.appendChild(notification);
+       
+       // 3秒後自動移除
+       setTimeout(() => {
+         notification.style.animation = 'slideOutRight 0.3s ease';
+         setTimeout(() => {
+           if (notification.parentNode) {
+             notification.parentNode.removeChild(notification);
+           }
+         }, 300);
+       }, 3000);
+     }
   </script>
+  
+  <style>
+    @keyframes slideInRight {
+      from { transform: translateX(100%); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+    
+    @keyframes slideOutRight {
+      from { transform: translateX(0); opacity: 1; }
+      to { transform: translateX(100%); opacity: 0; }
+    }
+  </style>
 </body>
 
 </html>

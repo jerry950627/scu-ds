@@ -1,7 +1,7 @@
 document.addEventListener('DOMContentLoaded', async () => {
     try {
-        // server.js的requireAuth已確保用戶已認證，只需檢查管理員權限
-        const response = await ApiService.get('/auth/check');
+        // 檢查管理員權限
+        const response = await ApiService.get('/api/auth/check');
         const data = await response.json();
         
         if (!data.user.isAdmin) {

@@ -104,38 +104,37 @@ const setupRoutes = require('./routes/routes');
 function setupHealthCheck(app) {
     app.get('/health', (req, res) => {
         res.json({
-            status: 'healthy',
+            success: true,
+            message: '服務運行正常',
             timestamp: new Date().toISOString(),
-            uptime: process.uptime(),
-            environment: NODE_ENV,
-            version: config.app.version
+            status: 'healthy'
+        });
+    });
+
+    app.get('/api/health', (req, res) => {
+        res.json({
+            success: true,
+            message: '服務運行正常',
+            timestamp: new Date().toISOString(),
+            status: 'healthy'
         });
     });
 }
 
-
-
 // 優雅關閉
-function gracefulShutdown(server) {
-    let isShuttingDown = false;
+const gracefulShutdown = async (signal, server) => {
+    console.log(`\n🔄 收到 ${signal} 信號，開始優雅關閉...`);
     
-    const shutdown = async (signal) => {
-        if (isShuttingDown) {
-            console.log('⚠️ 關閉程序已在進行中...');
-            return;
-        }
-        
-        isShuttingDown = true;
-        console.log(`\n📍 收到 ${signal} 信號，開始優雅關閉...`);
-        
-        // 設置強制退出計時器
-        const forceExitTimer = setTimeout(() => {
-            console.error('❌ 無法優雅關閉，強制退出');
-            process.exit(1);
-        }, 10000); // 減少到 10 秒
-        
-        try {
-            // 停止接受新連接
+    // 設置強制關閉超時
+    const forceShutdownTimeout = setTimeout(() => {
+        console.log('⚠️ 優雅關閉超時，強制退出...');
+        process.exit(1);
+    }, 5000); // 5秒超時
+    
+    try {
+        // 停止接受新的請求
+        if (server && server.listening) {
+            console.log('📡 停止接受新請求...');
             await new Promise((resolve, reject) => {
                 server.close((err) => {
                     if (err) {
@@ -147,55 +146,41 @@ function gracefulShutdown(server) {
                     }
                 });
             });
-            
-            // 關閉數據庫連接
-            if (global.db) {
-                await new Promise((resolve, reject) => {
-                    global.db.close((err) => {
-                        if (err) {
-                            console.error('❌ 關閉數據庫時發生錯誤:', err);
-                            reject(err);
-                        } else {
-                            console.log('✅ 數據庫連接已關閉');
-                            resolve();
-                        }
-                    });
-                });
-            }
-            
-            // 清除強制退出計時器
-            clearTimeout(forceExitTimer);
-            
-            console.log('👋 應用程序已優雅關閉');
-            process.exit(0);
-            
-        } catch (error) {
-            console.error('❌ 關閉過程中發生錯誤:', error);
-            clearTimeout(forceExitTimer);
-            process.exit(1);
         }
-    };
-    
-    // 監聽終止信號（只註冊一次）
-    process.removeAllListeners('SIGTERM');
-    process.removeAllListeners('SIGINT');
-    process.removeAllListeners('uncaughtException');
-    process.removeAllListeners('unhandledRejection');
-    
-    process.on('SIGTERM', () => shutdown('SIGTERM'));
-    process.on('SIGINT', () => shutdown('SIGINT'));
-    
-    // 處理未捕獲的異常
-    process.on('uncaughtException', (error) => {
-        console.error('❌ 未捕獲的異常:', error);
-        shutdown('uncaughtException');
-    });
-    
-    process.on('unhandledRejection', (reason, promise) => {
-        console.error('❌ 未處理的 Promise 拒絕:', reason);
-        shutdown('unhandledRejection');
-    });
-}
+
+        // 關閉數據庫連接
+        if (global.db && typeof global.db.close === 'function') {
+            console.log('🗄️ 關閉數據庫連接...');
+            try {
+                await global.db.close();
+                console.log('✅ 數據庫連接已關閉');
+            } catch (dbError) {
+                console.error('❌ 關閉數據庫時發生錯誤:', dbError);
+            }
+        }
+
+        // 清理全局變量
+        if (global.db) {
+            global.db = null;
+        }
+
+        // 移除事件監聽器
+        process.removeAllListeners('SIGTERM');
+        process.removeAllListeners('SIGINT');
+        process.removeAllListeners('uncaughtException');
+        process.removeAllListeners('unhandledRejection');
+
+        // 清除超時
+        clearTimeout(forceShutdownTimeout);
+
+        console.log('🚀 應用程序已優雅關閉');
+        process.exit(0);
+    } catch (error) {
+        console.error('❌ 優雅關閉過程中發生錯誤:', error);
+        clearTimeout(forceShutdownTimeout);
+        process.exit(1);
+    }
+};
 
 // 驗證環境配置
 function validateConfig() {
@@ -275,7 +260,9 @@ async function initializeApp() {
 async function startServer() {
     await initializeApp();
     
-    const server = app.listen(PORT, '0.0.0.0', () => {
+    let server;
+    
+    server = app.listen(PORT, '0.0.0.0', () => {
         console.log(`\n${'='.repeat(50)}`);
         console.log(`🚀 ${config.app.name} v${config.app.version}`);
         console.log(`${'='.repeat(50)}`);
@@ -293,8 +280,81 @@ async function startServer() {
         }
     });
     
-    // 設置優雅關閉
-    gracefulShutdown(server);
+    // 設置優雅關閉處理器
+    const handleShutdown = (signal) => {
+        console.log(`🎯 信號處理器被觸發: ${signal}`);
+        gracefulShutdown(signal, server);
+    };
+    
+    // 確保只註冊一次監聽器
+    process.removeAllListeners('SIGTERM');
+    process.removeAllListeners('SIGINT');
+    
+    console.log('📋 註冊信號處理器...');
+    
+    // Windows 相容的信號處理
+    if (process.platform === 'win32') {
+        // Windows 下使用 readline 監聽 Ctrl+C
+        const readline = require('readline');
+        if (process.stdin.isTTY) {
+            readline.createInterface({
+                input: process.stdin,
+                output: process.stdout
+            });
+        }
+        
+        process.on('SIGINT', () => {
+            console.log('🔔 接收到 SIGINT 信號 (Ctrl+C)');
+            handleShutdown('SIGINT');
+        });
+        
+        // Windows 下的其他關閉事件
+        process.on('SIGHUP', () => {
+            console.log('🔔 接收到 SIGHUP 信號');
+            handleShutdown('SIGHUP');
+        });
+        
+        process.on('SIGTERM', () => {
+            console.log('🔔 接收到 SIGTERM 信號');
+            handleShutdown('SIGTERM');
+        });
+        
+        console.log('✅ Windows 信號處理器註冊完成');
+    } else {
+        // Unix/Linux 系統的標準信號處理
+        process.once('SIGTERM', () => {
+            console.log('🔔 接收到 SIGTERM 信號');
+            handleShutdown('SIGTERM');
+        });
+        process.once('SIGINT', () => {
+            console.log('🔔 接收到 SIGINT 信號');
+            handleShutdown('SIGINT');
+        });
+        
+        console.log('✅ Unix 信號處理器註冊完成');
+    }
+    
+    // 處理未捕獲的異常 - 不自動關閉服務器
+    process.on('uncaughtException', (error) => {
+        console.error('❌ 未捕獲的異常:', error);
+        
+        // 如果是端口佔用錯誤，則關閉服務器
+        if (error.code === 'EADDRINUSE') {
+            console.error('❌ 端口被佔用，請檢查是否有其他應用在使用端口 3000');
+            handleShutdown('EADDRINUSE');
+        } else {
+            // 其他錯誤只記錄，不關閉服務器
+            console.error('⚠️ 應用將繼續運行，但建議檢查錯誤原因');
+        }
+    });
+    
+    process.on('unhandledRejection', (reason, promise) => {
+        console.error('❌ 未處理的 Promise 拒絕:', reason);
+        console.error('⚠️ Promise:', promise);
+        console.error('⚠️ 應用將繼續運行，但建議檢查錯誤原因');
+    });
+    
+    return server;
 }
 
 // 獲取本機網絡 IP

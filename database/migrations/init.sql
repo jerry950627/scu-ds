@@ -9,7 +9,7 @@ PRAGMA foreign_keys = ON;
 CREATE TABLE IF NOT EXISTS users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     username VARCHAR(50) UNIQUE NOT NULL,
-    password VARCHAR(255) NOT NULL,
+    password_hash VARCHAR(255) NOT NULL,
     email VARCHAR(100),
     role VARCHAR(20) DEFAULT 'member',
     full_name VARCHAR(100),
@@ -33,6 +33,7 @@ CREATE TABLE IF NOT EXISTS finance_records (
     type VARCHAR(20) NOT NULL CHECK (type IN ('income', 'expense')),
     category VARCHAR(50),
     date DATE NOT NULL,
+    notes TEXT,
     receipt_url VARCHAR(255),
     created_by INTEGER,
     approved_by INTEGER,
@@ -159,13 +160,57 @@ CREATE TABLE IF NOT EXISTS system_logs (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id INTEGER,
     action VARCHAR(100) NOT NULL,
+    description TEXT,
     table_name VARCHAR(50),
     record_id INTEGER,
     old_values TEXT, -- JSON格式
     new_values TEXT, -- JSON格式
     ip_address VARCHAR(45),
     user_agent TEXT,
+    data TEXT, -- JSON格式儲存額外資料
+    module TEXT,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id)
+);
+
+-- 活動日誌表（用於記錄用戶操作）
+CREATE TABLE IF NOT EXISTS activity_logs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER,
+    username VARCHAR(50),
+    action VARCHAR(100) NOT NULL,
+    module VARCHAR(50),
+    ip_address VARCHAR(45),
+    user_agent TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id)
+);
+
+-- 操作歷史表（用於歷史控制器）
+CREATE TABLE IF NOT EXISTS operation_history (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER,
+    operation_type VARCHAR(100) NOT NULL,
+    description TEXT,
+    details TEXT, -- JSON格式
+    target_id INTEGER,
+    target_type VARCHAR(50),
+    ip_address VARCHAR(45),
+    user_agent TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    deleted_at DATETIME,
+    FOREIGN KEY (user_id) REFERENCES users(id)
+);
+
+-- 登入歷史表
+CREATE TABLE IF NOT EXISTS login_history (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER,
+    ip_address VARCHAR(45),
+    user_agent TEXT,
+    success BOOLEAN DEFAULT 1,
+    fail_reason VARCHAR(200),
+    login_time DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id)
 );
 
@@ -213,6 +258,12 @@ CREATE INDEX IF NOT EXISTS idx_event_plans_date ON event_plans(event_date);
 CREATE INDEX IF NOT EXISTS idx_activity_details_event_plan_id ON activity_details(event_plan_id);
 CREATE INDEX IF NOT EXISTS idx_system_logs_user_id ON system_logs(user_id);
 CREATE INDEX IF NOT EXISTS idx_system_logs_created_at ON system_logs(created_at);
+CREATE INDEX IF NOT EXISTS idx_activity_logs_user_id ON activity_logs(user_id);
+CREATE INDEX IF NOT EXISTS idx_activity_logs_created_at ON activity_logs(created_at);
+CREATE INDEX IF NOT EXISTS idx_operation_history_user_id ON operation_history(user_id);
+CREATE INDEX IF NOT EXISTS idx_operation_history_created_at ON operation_history(created_at);
+CREATE INDEX IF NOT EXISTS idx_login_history_user_id ON login_history(user_id);
+CREATE INDEX IF NOT EXISTS idx_login_history_login_time ON login_history(login_time);
 CREATE INDEX IF NOT EXISTS idx_notifications_user_id ON notifications(user_id);
 CREATE INDEX IF NOT EXISTS idx_notifications_is_read ON notifications(is_read);
 CREATE INDEX IF NOT EXISTS idx_pr_vendors_name ON pr_vendors(name);
@@ -274,15 +325,17 @@ CREATE TRIGGER IF NOT EXISTS update_meeting_records_timestamp
         UPDATE meeting_records SET updated_at = CURRENT_TIMESTAMP WHERE id = NEW.id;
     END;
 
--- 插入預設管理員帳號（密碼需要在應用程式中加密）
--- 注意：這些是範例資料，實際部署時應該修改
-INSERT OR IGNORE INTO users (username, password, email, role, full_name, student_id, department, is_active) VALUES
-('admin', '$2b$10$placeholder_hash', 'admin@scu.edu.tw', 'admin', '系統管理員', 'ADMIN001', '資料科學系', 1),
-('secretary', '$2b$10$placeholder_hash', 'secretary@scu.edu.tw', 'secretary', '秘書處', 'SEC001', '資料科學系', 1),
-('finance', '$2b$10$placeholder_hash', 'finance@scu.edu.tw', 'finance', '財務部', 'FIN001', '資料科學系', 1),
-('activity', '$2b$10$placeholder_hash', 'activity@scu.edu.tw', 'activity', '活動部', 'ACT001', '資料科學系', 1),
-('design', '$2b$10$placeholder_hash', 'design@scu.edu.tw', 'design', '設計部', 'DES001', '資料科學系', 1),
-('pr', '$2b$10$placeholder_hash', 'pr@scu.edu.tw', 'pr', '公關部', 'PR001', '資料科學系', 1);
+-- 插入預設管理員帳號
+-- 注意：這些預設密碼應該在首次登入後修改
+INSERT OR IGNORE INTO users (username, password_hash, email, role, full_name, student_id, department, is_active) VALUES
+('admin', '$2b$12$8KXjZVOJZhPQXFiQk8LZL.qNuEQcEJFmT6fZuMgNGrDGGzJGxOLCa', 'admin@scu.edu.tw', 'admin', '系統管理員', 'ADMIN001', '資料科學系', 1),
+('scuds13173149', '$2b$12$7eGtYPdP5TQ2lRMGzF6MSOKKm4pPZaFPDwN0LUXJg9QdFbdWfQUbS', 'scuds13173149@scu.edu.tw', 'admin', '系學會管理員', 'SCU13173149', '資料科學系', 1),
+('jerry', '$2b$12$2iKmNQwLWGnQV3bRAqNzJOkfkJjrLgOCCcuKfRZTKBwYTQeOHfhAm', 'jerry@scu.edu.tw', 'admin', 'Jerry', 'JERRY001', '資料科學系', 1),
+('secretary', '$2b$12$8KXjZVOJZhPQXFiQk8LZL.qNuEQcEJFmT6fZuMgNGrDGGzJGxOLCa', 'secretary@scu.edu.tw', 'secretary', '秘書處', 'SEC001', '資料科學系', 1),
+('finance', '$2b$12$8KXjZVOJZhPQXFiQk8LZL.qNuEQcEJFmT6fZuMgNGrDGGzJGxOLCa', 'finance@scu.edu.tw', 'finance', '財務部', 'FIN001', '資料科學系', 1),
+('activity', '$2b$12$8KXjZVOJZhPQXFiQk8LZL.qNuEQcEJFmT6fZuMgNGrDGGzJGxOLCa', 'activity@scu.edu.tw', 'activity', '活動部', 'ACT001', '資料科學系', 1),
+('design', '$2b$12$8KXjZVOJZhPQXFiQk8LZL.qNuEQcEJFmT6fZuMgNGrDGGzJGxOLCa', 'design@scu.edu.tw', 'design', '設計部', 'DES001', '資料科學系', 1),
+('pr', '$2b$12$8KXjZVOJZhPQXFiQk8LZL.qNuEQcEJFmT6fZuMgNGrDGGzJGxOLCa', 'pr@scu.edu.tw', 'pr', '公關部', 'PR001', '資料科學系', 1);
 
 -- 插入範例財務分類
 INSERT OR IGNORE INTO finance_records (title, description, amount, type, category, date, created_by, status) VALUES

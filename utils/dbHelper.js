@@ -1,10 +1,19 @@
-const db = require('../database/db');
-
 /**
  * 統一的資料庫查詢工具
  * 提供標準化的 Promise 方法
  */
 class DatabaseHelper {
+  /**
+   * 獲取數據庫實例
+   * @returns {Database} 數據庫實例
+   */
+  static getDb() {
+    if (!global.db) {
+      throw new Error('數據庫未初始化，請先調用 initializeDatabase()');
+    }
+    return global.db;
+  }
+
   /**
    * 執行查詢並返回單一結果
    * @param {string} sql - SQL 查詢語句
@@ -13,6 +22,7 @@ class DatabaseHelper {
    */
   static async get(sql, params = []) {
     try {
+      const db = this.getDb();
       return await db.get(sql, params);
     } catch (error) {
       console.error('Database GET error:', error);
@@ -28,6 +38,7 @@ class DatabaseHelper {
    */
   static async all(sql, params = []) {
     try {
+      const db = this.getDb();
       return await db.all(sql, params);
     } catch (error) {
       console.error('Database ALL error:', error);
@@ -43,6 +54,7 @@ class DatabaseHelper {
    */
   static async run(sql, params = []) {
     try {
+      const db = this.getDb();
       return await db.run(sql, params);
     } catch (error) {
       console.error('Database RUN error:', error);

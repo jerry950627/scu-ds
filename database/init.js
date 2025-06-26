@@ -71,7 +71,9 @@ class DatabaseInitializer {
     async executeSqlFile(db) {
         try {
             const sqlContent = fs.readFileSync(this.sqlPath, 'utf8');
-            const statements = sqlContent.split(';').filter(stmt => stmt.trim());
+            
+            // 更智能的 SQL 語句分割，處理觸發器
+            const statements = this.splitSqlStatements(sqlContent);
             
             console.log(`📝 執行 ${statements.length} 個 SQL 語句...`);
             
@@ -87,6 +89,54 @@ class DatabaseInitializer {
             console.error('❌ 執行 SQL 腳本失敗:', error);
             throw error;
         }
+    }
+
+    /**
+     * 智能分割 SQL 語句，正確處理觸發器
+     */
+    splitSqlStatements(sqlContent) {
+        const statements = [];
+        let currentStatement = '';
+        let inTrigger = false;
+        
+        const lines = sqlContent.split('\n');
+        
+        for (const line of lines) {
+            const trimmedLine = line.trim();
+            
+            // 跳過註釋和空行
+            if (trimmedLine.startsWith('--') || trimmedLine === '') {
+                continue;
+            }
+            
+            currentStatement += line + '\n';
+            
+            // 檢測觸發器開始
+            if (trimmedLine.toUpperCase().includes('CREATE TRIGGER')) {
+                inTrigger = true;
+            }
+            
+            // 檢測觸發器結束
+            if (inTrigger && trimmedLine.toUpperCase() === 'END;') {
+                inTrigger = false;
+                statements.push(currentStatement);
+                currentStatement = '';
+                continue;
+            }
+            
+            // 一般語句以分號結尾且不在觸發器內
+            if (!inTrigger && trimmedLine.endsWith(';')) {
+                statements.push(currentStatement);
+                currentStatement = '';
+            }
+        }
+        
+        // 處理最後一個語句
+        if (currentStatement.trim()) {
+            statements.push(currentStatement);
+        }
+        
+        return statements.filter(stmt => stmt.trim());
     }
 
     /**
@@ -137,10 +187,10 @@ class DatabaseInitializer {
             },
             {
                 username: 'scuds13173149',
-                password: 'scuds13173149',
+                password: '5028',
                 email: 'scuds13173149@scu.edu.tw',
-                role: 'member',
-                full_name: '系學會成員',
+                role: 'admin',
+                full_name: '系學會管理員',
                 student_id: 'SCU13173149'
             }
         ];
@@ -160,7 +210,7 @@ class DatabaseInitializer {
                 
                 // 插入用戶
                 await this.runQuery(db, `
-                    INSERT INTO users (username, password, email, role, full_name, student_id, department, is_active)
+                    INSERT INTO users (username, password_hash, email, role, full_name, student_id, department, is_active)
                     VALUES (?, ?, ?, ?, ?, ?, '資料科學系', 1)
                 `, [user.username, hashedPassword, user.email, user.role, user.full_name, user.student_id]);
                 

@@ -25,7 +25,7 @@ document.addEventListener('DOMContentLoaded', () => {
     (async () => {
         try {
             // 檢查用戶認證狀態
-            const response = await fetch('/auth/check', {
+            const response = await fetch('/api/auth/check', {
             method: 'GET',
             credentials: 'include'
         });

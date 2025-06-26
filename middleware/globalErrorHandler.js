@@ -15,7 +15,7 @@ class GlobalErrorHandler {
         // 記錄錯誤
         console.error('❌ 全域錯誤捕獲:', {
             message: err.message,
-            stack: err.stack,
+            stack: process.env.NODE_ENV === 'development' ? err.stack : undefined,
             url: req.url,
             method: req.method,
             timestamp: new Date().toISOString(),
@@ -73,10 +73,21 @@ class GlobalErrorHandler {
             // API 請求返回 JSON 錯誤
             res.status(statusCode).json(errorResponse);
         } else {
-            // 網頁請求發送靜態錯誤頁面
-            const path = require('path');
-            const errorPagePath = path.join(__dirname, '../public/pages/error.html');
-            res.status(statusCode).sendFile(errorPagePath);
+            // 網頁請求處理
+            if (statusCode === 401) {
+                // 認證錯誤重定向到登入頁面
+                return res.redirect('/?error=unauthorized');
+            } else if (statusCode === 403) {
+                // 權限錯誤顯示錯誤頁面
+                const path = require('path');
+                const errorPagePath = path.join(__dirname, '../public/pages/error.html');
+                return res.status(statusCode).sendFile(errorPagePath);
+            } else {
+                // 其他錯誤顯示錯誤頁面
+                const path = require('path');
+                const errorPagePath = path.join(__dirname, '../public/pages/error.html');
+                res.status(statusCode).sendFile(errorPagePath);
+            }
         }
     }
 

@@ -3,7 +3,7 @@ const AuthManager = {
     // 登入函數
     login: async function(username, password) {
         try {
-            const response = await fetch('/auth/login', {
+            const response = await fetch('/api/auth/login', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -37,7 +37,7 @@ const AuthManager = {
     // 登出函數
     logout: async function() {
         try {
-            const response = await fetch('/auth/logout', {
+            const response = await fetch('/api/auth/logout', {
                 method: 'POST',
                 credentials: 'include'
             });
@@ -53,7 +53,7 @@ const AuthManager = {
     // 檢查認證狀態
     checkAuth: async function() {
         try {
-            const response = await fetch('/auth/check', {
+            const response = await fetch('/api/auth/check', {
                 method: 'GET',
                 credentials: 'include'
             });

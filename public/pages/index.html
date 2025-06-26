@@ -73,7 +73,7 @@
 <body>
     <div class="login-container">
         <div class="logo">
-            <img src="/assets/images/ds.jpg" alt="東吳資科系">
+            <img src="/assets/images/ds.jpg" alt="東吳資科系" onerror="this.style.display='none'">
             <h2>東吳資科系學會</h2>
             <p>學生會管理系統</p>
         </div>
@@ -91,17 +91,47 @@
             </div>
             <button type="submit" class="btn btn-login w-100 text-white">登入</button>
         </form>
+    
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-<script src="/assets/js/globalErrorHandler.js"></script>
+    <script src="/assets/js/globalErrorHandler.js"></script>
     <script src="/assets/js/common.js"></script>
     <script src="/assets/js/auth.js"></script>
     <script>
-        // 頁面載入時檢查是否已登入
+        // 頁面載入時檢查是否已登入和錯誤訊息
         document.addEventListener('DOMContentLoaded', async function() {
+            // 檢查 URL 中的錯誤參數
+            const urlParams = new URLSearchParams(window.location.search);
+            const error = urlParams.get('error');
+            
+            if (error) {
+                const errorMsg = document.getElementById('errorMsg');
+                let message = '';
+                
+                switch(error) {
+                    case 'unauthorized':
+                        message = '請先登入才能存取該頁面';
+                        break;
+                    case 'account_disabled':
+                        message = '您的帳戶已被停用，請聯繫管理員';
+                        break;
+                    case 'session_expired':
+                        message = '登入已過期，請重新登入';
+                        break;
+                    default:
+                        message = '存取錯誤，請重新登入';
+                }
+                
+                errorMsg.textContent = message;
+                errorMsg.style.display = 'block';
+                
+                // 清除 URL 中的錯誤參數
+                window.history.replaceState({}, document.title, window.location.pathname);
+            }
+            
             try {
-                const response = await fetch('/auth/check', {
+                const response = await fetch('/api/auth/check', {
                     method: 'GET',
                     credentials: 'include'
                 });
@@ -116,6 +146,40 @@
             } catch (error) {
                 // 忽略錯誤，繼續顯示登入頁面
                 console.log('認證檢查失敗，顯示登入頁面');
+            }
+        });
+
+        // 登入表單處理
+        document.getElementById('loginForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const errorMsg = document.getElementById('errorMsg');
+            
+            try {
+                const response = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify({ username, password })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.success) {
+                    // 登入成功，重定向
+                    window.location.href = data.redirectUrl || '/dashboard';
+                } else {
+                    // 登入失敗，顯示錯誤訊息
+                    errorMsg.textContent = data.message || '登入失敗，請檢查帳號密碼';
+                    errorMsg.style.display = 'block';
+                }
+            } catch (error) {
+                errorMsg.textContent = '登入時發生錯誤，請稍後再試';
+                errorMsg.style.display = 'block';
             }
         });
     </script>

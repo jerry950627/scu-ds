@@ -357,7 +357,9 @@ router.delete('/activities/:id',
     SecretaryController.deleteActivity
 );
 
-// 工作流程
+// 工作流程 - 暫時停用，等待實現
+// TODO: 實現工作流程相關功能
+/*
 // 獲取工作流程列表
 router.get('/workflows', 
     requireRole(['admin', 'secretary']),
@@ -384,5 +386,6 @@ router.get('/workflows/:id/status',
     validateId,
     SecretaryController.getWorkflowStatus
 );
+*/
 
 module.exports = router;

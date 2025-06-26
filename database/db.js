@@ -107,7 +107,7 @@ class Database {
             `CREATE TABLE IF NOT EXISTS users (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 username TEXT UNIQUE NOT NULL,
-                password TEXT NOT NULL,
+                password_hash TEXT NOT NULL,
                 role TEXT DEFAULT 'user',
                 status TEXT DEFAULT 'active',
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP
@@ -255,7 +255,7 @@ class Database {
                 for (const user of defaultUsers) {
                     const hashedPassword = await bcrypt.hash(user.password, config.bcryptRounds);
                     await this.run(
-                        'INSERT INTO users (username, password, role) VALUES (?, ?, ?)',
+                        'INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)',
                         [user.username, hashedPassword, user.role]
                     );
                     console.log(`    ✓ 用戶 ${user.username} 已創建`);

@@ -134,32 +134,62 @@ class FinanceController extends BaseController {
         const { type, amount, description, category, date, notes } = req.body;
         const userId = req.session.user.id;
 
+        console.log('收到創建財務記錄請求:', req.body);
+        console.log('用戶ID:', userId);
+
+        // 驗證必要欄位
+        if (!type || !amount || !date) {
+            console.log('缺少必要欄位:', { type, amount, date });
+            return BaseController.error(res, '類型、金額和日期為必填欄位', 400);
+        }
+
+        // 驗證類型
+        if (!['income', 'expense'].includes(type)) {
+            return BaseController.error(res, '無效的記錄類型', 400);
+        }
+
+        // 驗證金額
+        const numAmount = parseFloat(amount);
+        if (isNaN(numAmount) || numAmount <= 0) {
+            return BaseController.error(res, '金額必須是大於0的數字', 400);
+        }
+
         try {
             const result = await DatabaseHelper.run(`
-                INSERT INTO finance_records (type, amount, description, category, date, notes, created_by, created_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))
-            `, [type, amount, description, category, date, notes, userId]);
+                INSERT INTO finance_records (title, description, amount, type, category, date, notes, created_by, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+            `, [description || '無標題', description || '', numAmount, type, category || '其他', date, notes || '', userId]);
 
-            await BaseController.logAction(req, 'FINANCE_RECORD_CREATED', `創建財務記錄: ${description}`, {
-                recordId: result.lastID,
-                type,
-                amount
-            });
+            console.log('財務記錄創建成功:', result);
+
+            try {
+                await BaseController.logAction(req, 'FINANCE_RECORD_CREATED', `創建財務記錄: ${description}`, {
+                    recordId: result.lastID,
+                    type,
+                    amount: numAmount
+                });
+            } catch (logError) {
+                console.warn('記錄日誌失敗:', logError.message);
+            }
 
             return BaseController.success(res, {
                 id: result.lastID,
                 type,
-                amount,
-                description,
-                category,
+                amount: numAmount,
+                description: description || '',
+                category: category || '其他',
                 date,
-                notes
+                notes: notes || ''
             }, '財務記錄創建成功', 201);
 
         } catch (error) {
             console.error('創建財務記錄錯誤:', error);
-            await BaseController.logAction(req, 'FINANCE_RECORD_CREATE_ERROR', `創建財務記錄失敗: ${error.message}`);
-            return BaseController.error(res, '創建財務記錄失敗', 500);
+            try {
+                await BaseController.logAction(req, 'FINANCE_RECORD_CREATE_ERROR', `創建財務記錄失敗: ${error.message}`);
+            } catch (logError) {
+                console.warn('記錄錯誤日誌失敗:', logError.message);
+            }
+            return BaseController.error(res, `創建財務記錄失敗: ${error.message}`, 500);
         }
     });
 
@@ -189,9 +219,9 @@ class FinanceController extends BaseController {
 
             await DatabaseHelper.run(`
                 UPDATE finance_records 
-                SET type = ?, amount = ?, description = ?, category = ?, date = ?, notes = ?, updated_at = datetime('now')
+                SET title = ?, description = ?, amount = ?, type = ?, category = ?, date = ?, notes = ?, updated_at = datetime('now')
                 WHERE id = ?
-            `, [type, amount, description, category, date, notes, recordId]);
+            `, [description, description, amount, type, category, date, notes, recordId]);
 
             await BaseController.logAction(req, 'FINANCE_RECORD_UPDATED', `更新財務記錄: ${description}`, {
                 recordId,
@@ -539,9 +569,9 @@ class FinanceController extends BaseController {
             // 批量插入記錄
             const insertPromises = records.map(record => 
                 DatabaseHelper.run(`
-                    INSERT INTO finance_records (type, amount, description, category, date, notes, created_by, created_at)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))
-                `, [record.type, record.amount, record.description, record.category, record.date, record.notes, userId])
+                    INSERT INTO finance_records (title, description, amount, type, category, date, notes, created_by, created_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+                `, [record.description, record.description, record.amount, record.type, record.category, record.date, record.notes, userId])
             );
 
             await Promise.all(insertPromises);
@@ -602,14 +632,12 @@ class FinanceController extends BaseController {
      */
     static getFinanceOverview = BaseController.asyncHandler(async (req, res) => {
         try {
-            const db = DatabaseHelper.getDatabase();
-            
             // 獲取總收入和總支出
-            const totalIncome = await db.get(
-                'SELECT COALESCE(SUM(amount), 0) as total FROM financial_records WHERE type = "income"'
+            const totalIncome = await DatabaseHelper.get(
+                'SELECT COALESCE(SUM(amount), 0) as total FROM finance_records WHERE type = "income"'
             );
-            const totalExpense = await db.get(
-                'SELECT COALESCE(SUM(amount), 0) as total FROM financial_records WHERE type = "expense"'
+            const totalExpense = await DatabaseHelper.get(
+                'SELECT COALESCE(SUM(amount), 0) as total FROM finance_records WHERE type = "expense"'
             );
             
             const balance = totalIncome.total - totalExpense.total;
