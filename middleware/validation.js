@@ -383,12 +383,87 @@ module.exports.validatePasswordReset = ValidationMiddleware.combine([
     ValidationMiddleware.validateEmail('email')
 ]);
 
-module.exports.validateFinance = ValidationMiddleware.combine([
-    ValidationMiddleware.validateRequired(['type', 'amount', 'date']),
-    ValidationMiddleware.validateNumberRange('amount', 0.01), // 至少0.01
-    ValidationMiddleware.validateDate('date'),
-    ValidationMiddleware.sanitizeInput(['description', 'category', 'notes'])
-]);
+module.exports.validateFinance = (req, res, next) => {
+    console.log('🔍 開始財務記錄中間件驗證...');
+    console.log('📋 原始資料:', req.body);
+    console.log('📋 Content-Type:', req.get('Content-Type'));
+    console.log('📎 檔案資料:', req.file ? {
+        fieldname: req.file.fieldname,
+        originalname: req.file.originalname,
+        mimetype: req.file.mimetype,
+        size: req.file.size
+    } : '無檔案');
+    
+    // 提取和清理資料
+    const type = req.body.type?.trim();
+    const amount = req.body.amount?.toString().trim();
+    const date = req.body.date?.trim();
+    const description = req.body.description?.trim();
+    const category = req.body.category?.trim();
+    
+    console.log('🔎 檢查清理後的欄位:');
+    console.log('  - type:', `"${type}"`);
+    console.log('  - amount:', `"${amount}"`);
+    console.log('  - date:', `"${date}"`);
+    console.log('  - description:', `"${description}"`);
+    console.log('  - category:', `"${category}"`);
+    
+    const errors = [];
+    
+    // 驗證類型
+    if (!type) {
+        errors.push('類型為必填欄位');
+    } else if (!['income', 'expense'].includes(type)) {
+        errors.push('類型必須是 income 或 expense');
+    }
+    
+    // 驗證金額
+    if (!amount) {
+        errors.push('金額為必填欄位');
+    } else {
+        const numAmount = parseFloat(amount);
+        if (isNaN(numAmount) || numAmount <= 0) {
+            errors.push('金額必須是大於0的數字');
+        }
+    }
+    
+    // 驗證日期
+    if (!date) {
+        errors.push('日期為必填欄位');
+    } else {
+        const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+        if (!dateRegex.test(date)) {
+            errors.push('日期格式不正確，請使用 YYYY-MM-DD 格式');
+        } else {
+            const dateObj = new Date(date);
+            if (isNaN(dateObj.getTime())) {
+                errors.push('無效的日期');
+            }
+        }
+    }
+    
+    // 驗證描述長度（可選但有限制）
+    if (description && description.length > 500) {
+        errors.push('描述不能超過500個字元');
+    }
+    
+    // 驗證分類長度（可選但有限制）
+    if (category && category.length > 50) {
+        errors.push('分類不能超過50個字元');
+    }
+    
+    if (errors.length > 0) {
+        console.log('❌ 驗證失敗:', errors);
+        return res.status(400).json({
+            success: false,
+            message: '資料驗證失敗',
+            errors: errors
+        });
+    }
+    
+    console.log('✅ 中間件驗證通過');
+    next();
+};
 
 module.exports.validateActivity = ValidationMiddleware.combine([
     ValidationMiddleware.validateRequired(['title', 'description']),

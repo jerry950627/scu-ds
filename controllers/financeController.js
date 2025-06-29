@@ -81,15 +81,21 @@ class FinanceController extends BaseController {
             `;
             const stats = await DatabaseHelper.get(statsQuery, params.slice(0, -2)); // 移除 limit 和 offset
 
-            return BaseController.paginated(res, {
-                records,
+            // 修正：確保返回正確的資料結構
+            const responseData = {
+                records: records.map(record => ({
+                    ...record,
+                    creator_name: record.creator_name || '系統'
+                })),
                 statistics: {
                     total_income: stats.total_income || 0,
                     total_expense: stats.total_expense || 0,
                     balance: (stats.total_income || 0) - (stats.total_expense || 0),
                     total_records: stats.total_records || 0
                 }
-            }, { page, limit, total });
+            };
+            
+            return BaseController.paginated(res, responseData, { page, limit, total });
 
         } catch (error) {
             console.error('獲取財務記錄錯誤:', error);
@@ -131,97 +137,220 @@ class FinanceController extends BaseController {
      * 創建財務記錄
      */
     static createRecord = BaseController.asyncHandler(async (req, res) => {
-        const { type, amount, description, category, date, notes } = req.body;
+        console.log('=== 財務記錄創建請求開始 ===');
+        console.log('📍 請求時間:', new Date().toISOString());
+        console.log('📍 請求方法:', req.method);
+        console.log('📍 請求路徑:', req.path);
+        console.log('📍 請求URL:', req.url);
+        console.log('📍 請求完整URL:', req.protocol + '://' + req.get('host') + req.originalUrl);
+        console.log('📍 Content-Type:', req.get('Content-Type'));
+        console.log('📍 來源IP:', req.ip || req.connection.remoteAddress);
+        console.log('📍 請求頭:', req.headers);
+        
+        // 設定回應超時
+        res.setTimeout(60000, () => {
+            console.error('❌ 請求處理超時 (60秒)');
+            if (!res.headersSent) {
+                return BaseController.error(res, '請求處理超時，請稍後再試', 504);
+            }
+        });
+        
+        // Session 狀態檢查
+        console.log('🔐 Session 狀態檢查:');
+        console.log('  - Session 存在:', !!req.session);
+        console.log('  - 用戶登入狀態:', req.session?.user ? '已登入' : '未登入');
+        
+        if (req.session?.user) {
+            console.log('👤 用戶資訊:');
+            console.log('  - 用戶ID:', req.session.user.id);
+            console.log('  - 用戶名:', req.session.user.username);
+            console.log('  - 用戶角色:', req.session.user.role);
+        } else {
+            console.error('❌ 用戶未登入或Session失效');
+            return BaseController.error(res, '請先登入', 401);
+        }
+        
+        // 請求資料檢查
+        console.log('📋 請求資料檢查:');
+        console.log('  - req.body:', req.body);
+        console.log('  - req.body keys:', Object.keys(req.body));
+        
+        // 檔案上傳檢查
+        console.log('📎 檔案上傳檢查:');
+        if (req.file) {
+            console.log('  - 檔案已上傳:', {
+                filename: req.file.filename,
+                originalname: req.file.originalname,
+                mimetype: req.file.mimetype,
+                size: req.file.size,
+                path: req.file.path
+            });
+        } else {
+            console.log('  - 無檔案上傳');
+        }
+        
+        // 提取表單資料 - 確保正確處理FormData
+        const type = req.body.type?.trim();
+        const amount = req.body.amount;
+        const date = req.body.date?.trim();
+        const category = req.body.category?.trim() || '其他';
+        const description = req.body.description?.trim() || '';
+        const notes = req.body.notes?.trim() || '';
         const userId = req.session.user.id;
 
-        console.log('=== 創建財務記錄開始 ===');
-        console.log('收到創建財務記錄請求:', req.body);
-        console.log('用戶ID:', userId);
-        console.log('Session:', req.session?.user ? '有效' : '無效');
-        console.log('請求來源:', req.ip);
+        console.log('📝 解析後的欄位:');
+        console.log('  - type:', `"${type}"`);
+        console.log('  - amount:', `"${amount}"`);
+        console.log('  - date:', `"${date}"`);
+        console.log('  - category:', `"${category}"`);
+        console.log('  - description:', `"${description}"`);
+        console.log('  - notes:', `"${notes}"`);
+        console.log('  - userId:', userId);
 
-        // 基本驗證（驗證中間件已處理大部分，這裡做額外檢查）
-        if (!type || !amount || !date) {
-            console.log('缺少必要欄位:', { type, amount, date });
-            return BaseController.error(res, '類型、金額和日期為必填欄位', 400);
+        // 驗證必填欄位
+        console.log('🔍 開始驗證必填欄位...');
+        
+        if (!type) {
+            console.error('❌ 類型欄位為空');
+            return BaseController.error(res, '類型為必填欄位', 400);
+        }
+        
+        if (!amount) {
+            console.error('❌ 金額欄位為空');
+            return BaseController.error(res, '金額為必填欄位', 400);
+        }
+        
+        if (!date) {
+            console.error('❌ 日期欄位為空');
+            return BaseController.error(res, '日期為必填欄位', 400);
         }
 
-        // 驗證類型
+        // 驗證類型值
         if (!['income', 'expense'].includes(type)) {
-            console.log('無效的記錄類型:', type);
-            return BaseController.error(res, '無效的記錄類型', 400);
+            console.error('❌ 無效的記錄類型:', type);
+            return BaseController.error(res, '無效的記錄類型，必須是 income 或 expense', 400);
         }
 
-        // 驗證金額
+        // 驗證並轉換金額
         const numAmount = parseFloat(amount);
         if (isNaN(numAmount) || numAmount <= 0) {
-            console.log('無效的金額:', amount, numAmount);
+            console.error('❌ 無效的金額:', amount, '-> parsed:', numAmount);
             return BaseController.error(res, '金額必須是大於0的數字', 400);
         }
 
         // 驗證日期格式
         const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
         if (!dateRegex.test(date)) {
-            console.log('無效的日期格式:', date);
+            console.error('❌ 無效的日期格式:', date);
             return BaseController.error(res, '日期格式不正確，請使用 YYYY-MM-DD 格式', 400);
         }
 
+        // 驗證日期是否有效
+        const dateObj = new Date(date);
+        if (isNaN(dateObj.getTime())) {
+            console.error('❌ 無效的日期:', date);
+            return BaseController.error(res, '無效的日期', 400);
+        }
+
+        console.log('✅ 所有驗證通過');
+
         try {
-            // 確保必要的資料都有預設值
-            const finalDescription = description || '無說明';
-            const finalCategory = category || '其他';
-            const finalNotes = notes || '';
+            // 處理上傳的收據檔案
+            let receiptUrl = null;
+            if (req.file) {
+                receiptUrl = `/uploads/documents/${req.file.filename}`;
+                console.log('📎 收據檔案URL:', receiptUrl);
+            }
             
-            console.log('準備插入數據庫:', {
-                description: finalDescription,
+            console.log('💾 準備插入資料庫...');
+            console.log('插入參數:', {
+                title: description || '財務記錄',
+                description: description,
                 amount: numAmount,
-                type,
-                category: finalCategory,
-                date,
-                userId
+                type: type,
+                category: category,
+                date: date,
+                notes: notes,
+                receipt_url: receiptUrl,
+                created_by: userId
             });
 
             const result = await DatabaseHelper.run(`
-                INSERT INTO finance_records (title, description, amount, type, category, date, notes, created_by, created_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
-            `, [finalDescription, finalDescription, numAmount, type, finalCategory, date, finalNotes, userId]);
+                INSERT INTO finance_records (
+                    title, 
+                    description, 
+                    amount, 
+                    type, 
+                    category, 
+                    date, 
+                    notes, 
+                    receipt_url, 
+                    created_by, 
+                    created_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+            `, [
+                description || '財務記錄',
+                description,
+                numAmount,
+                type,
+                category,
+                date,
+                notes,
+                receiptUrl,
+                userId
+            ]);
 
-            console.log('財務記錄創建成功:', result);
-            console.log('新記錄ID:', result.lastID);
+            console.log('✅ 資料庫插入成功');
+            console.log('📊 插入結果:', result);
+            console.log('🆔 新記錄ID:', result.lastID);
 
+            // 記錄操作日誌
             try {
-                await BaseController.logAction(req, 'FINANCE_RECORD_CREATED', `創建財務記錄: ${finalDescription}`, {
+                await BaseController.logAction(req, 'FINANCE_RECORD_CREATED', `創建財務記錄: ${description}`, {
                     recordId: result.lastID,
                     type,
-                    amount: numAmount
+                    amount: numAmount,
+                    hasReceipt: !!receiptUrl
                 });
-                console.log('系統日誌記錄成功');
+                console.log('📝 系統日誌記錄成功');
             } catch (logError) {
-                console.warn('記錄日誌失敗:', logError.message);
+                console.warn('⚠️ 記錄日誌失敗:', logError.message);
             }
 
+            // 準備回應資料
             const responseData = {
                 id: result.lastID,
                 type,
                 amount: numAmount,
-                description: finalDescription,
-                category: finalCategory,
+                description,
+                category,
                 date,
-                notes: finalNotes
+                notes,
+                receipt_url: receiptUrl,
+                created_by: userId,
+                created_at: new Date().toISOString()
             };
             
-            console.log('準備回傳響應:', responseData);
-            console.log('=== 創建財務記錄完成 ===');
+            console.log('📤 準備回傳響應:', responseData);
+            console.log('=== 創建財務記錄完成 ✅ ===');
 
             return BaseController.success(res, responseData, '財務記錄創建成功', 201);
 
         } catch (error) {
-            console.error('創建財務記錄錯誤:', error);
+            console.error('=== 創建財務記錄發生錯誤 ❌ ===');
+            console.error('❌ 錯誤類型:', error.constructor.name);
+            console.error('❌ 錯誤訊息:', error.message);
+            console.error('❌ 錯誤堆疊:', error.stack);
+            
+            // 記錄錯誤日誌
             try {
                 await BaseController.logAction(req, 'FINANCE_RECORD_CREATE_ERROR', `創建財務記錄失敗: ${error.message}`);
+                console.log('📝 錯誤日誌記錄成功');
             } catch (logError) {
-                console.warn('記錄錯誤日誌失敗:', logError.message);
+                console.warn('⚠️ 記錄錯誤日誌失敗:', logError.message);
             }
+            
+            console.log('=== 準備回傳錯誤響應 ===');
             return BaseController.error(res, `創建財務記錄失敗: ${error.message}`, 500);
         }
     });
@@ -546,7 +675,7 @@ class FinanceController extends BaseController {
     /**
      * 批量匯入財務記錄
      */
-    static importRecords = BaseController.asyncHandler(async (req, res) => {
+    static importFinanceRecords = BaseController.asyncHandler(async (req, res) => {
         const userId = req.session.user.id;
 
         if (!req.file) {
@@ -554,6 +683,9 @@ class FinanceController extends BaseController {
         }
 
         try {
+            // 動態導入ExcelJS
+            const ExcelJS = require('exceljs');
+            
             const workbook = new ExcelJS.Workbook();
             await workbook.xlsx.readFile(req.file.path);
             const worksheet = workbook.getWorksheet(1);
@@ -596,7 +728,7 @@ class FinanceController extends BaseController {
             });
 
             if (errors.length > 0) {
-                return BaseController.error(res, '匯入檔案格式錯誤', 400, errors);
+                return BaseController.error(res, '匯入檔案格式錯誤', 400, { details: errors });
             }
 
             // 批量插入記錄
@@ -628,36 +760,166 @@ class FinanceController extends BaseController {
     });
 
     /**
-     * 導入財務記錄
-     */
-    static importFinanceRecords = BaseController.asyncHandler(async (req, res) => {
-        // TODO: 實現批量導入功能
-        res.json({
-            success: true,
-            message: '批量導入功能開發中'
-        });
-    });
-
-    /**
      * 導出到Excel
      */
     static exportToExcel = BaseController.asyncHandler(async (req, res) => {
-        // TODO: 實現Excel導出功能
-        res.json({
-            success: true,
-            message: 'Excel導出功能開發中'
-        });
+        try {
+            // 動態導入ExcelJS
+            const ExcelJS = require('exceljs');
+            const path = require('path');
+            const fs = require('fs').promises;
+            
+            const { startDate, endDate, type, format } = req.query;
+
+            // 構建查詢條件
+            const whereConditions = [];
+            const params = [];
+
+            if (startDate) {
+                whereConditions.push('date >= ?');
+                params.push(startDate);
+            }
+            if (endDate) {
+                whereConditions.push('date <= ?');
+                params.push(endDate);
+            }
+            if (type && ['income', 'expense'].includes(type)) {
+                whereConditions.push('type = ?');
+                params.push(type);
+            }
+
+            const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
+
+            const records = await DatabaseHelper.all(`
+                SELECT 
+                    date,
+                    type,
+                    amount,
+                    description,
+                    category,
+                    notes,
+                    created_at
+                FROM finance_records ${whereClause}
+                ORDER BY date DESC, created_at DESC
+            `, params);
+
+            const workbook = new ExcelJS.Workbook();
+            const worksheet = workbook.addWorksheet('財務記錄');
+
+            // 設定標題
+            worksheet.columns = [
+                { header: '日期', key: 'date', width: 12 },
+                { header: '類型', key: 'type', width: 8 },
+                { header: '金額', key: 'amount', width: 12 },
+                { header: '描述', key: 'description', width: 20 },
+                { header: '分類', key: 'category', width: 12 },
+                { header: '備註', key: 'notes', width: 20 },
+                { header: '創建時間', key: 'created_at', width: 20 }
+            ];
+
+            // 添加資料
+            records.forEach(record => {
+                worksheet.addRow({
+                    date: record.date,
+                    type: record.type === 'income' ? '收入' : '支出',
+                    amount: record.amount,
+                    description: record.description,
+                    category: record.category,
+                    notes: record.notes || '',
+                    created_at: new Date(record.created_at).toLocaleString('zh-TW')
+                });
+            });
+
+            // 設定樣式
+            worksheet.getRow(1).font = { bold: true };
+            worksheet.getRow(1).fill = {
+                type: 'pattern',
+                pattern: 'solid',
+                fgColor: { argb: 'FFE0E0E0' }
+            };
+
+            const fileName = `財務報表_${new Date().toISOString().split('T')[0]}.xlsx`;
+            const filePath = path.join(process.env.UPLOAD_PATH || 'public/uploads', 'reports', fileName);
+
+            // 確保目錄存在
+            await fs.mkdir(path.dirname(filePath), { recursive: true });
+
+            await workbook.xlsx.writeFile(filePath);
+
+            await BaseController.logAction(req, 'FINANCE_REPORT_EXPORTED', '匯出財務報表', {
+                format,
+                recordCount: records.length,
+                fileName
+            });
+
+            res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+            res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(fileName)}"`);
+            
+            return res.download(filePath, fileName, (err) => {
+                if (err) {
+                    console.error('下載檔案錯誤:', err);
+                }
+                // 清理臨時檔案
+                fs.unlink(filePath).catch(console.error);
+            });
+        } catch (error) {
+            console.error('匯出財務報表錯誤:', error);
+            await BaseController.logAction(req, 'FINANCE_REPORT_EXPORT_ERROR', `匯出財務報表失敗: ${error.message}`);
+            return BaseController.error(res, '匯出財務報表失敗', 500);
+        }
     });
 
     /**
      * 導出到PDF
      */
     static exportToPDF = BaseController.asyncHandler(async (req, res) => {
-        // TODO: 實現PDF導出功能
-        res.json({
-            success: true,
-            message: 'PDF導出功能開發中'
-        });
+        // 目前返回JSON格式用於CSV匯出
+        try {
+            const { startDate, endDate, type } = req.query;
+
+            // 構建查詢條件
+            const whereConditions = [];
+            const params = [];
+
+            if (startDate) {
+                whereConditions.push('date >= ?');
+                params.push(startDate);
+            }
+            if (endDate) {
+                whereConditions.push('date <= ?');
+                params.push(endDate);
+            }
+            if (type && ['income', 'expense'].includes(type)) {
+                whereConditions.push('type = ?');
+                params.push(type);
+            }
+
+            const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
+
+            const records = await DatabaseHelper.all(`
+                SELECT 
+                    date,
+                    type,
+                    amount,
+                    description,
+                    category,
+                    notes,
+                    created_at
+                FROM finance_records ${whereClause}
+                ORDER BY date DESC, created_at DESC
+            `, params);
+
+            await BaseController.logAction(req, 'FINANCE_REPORT_EXPORTED', '匯出財務報表 (JSON)', {
+                format: 'json',
+                recordCount: records.length
+            });
+
+            return BaseController.success(res, records, '財務報表匯出成功');
+
+        } catch (error) {
+            console.error('匯出資料錯誤:', error);
+            return BaseController.error(res, '匯出資料失敗', 500);
+        }
     });
 
     /**
@@ -675,11 +937,15 @@ class FinanceController extends BaseController {
             
             const balance = totalIncome.total - totalExpense.total;
             
-            return BaseController.success(res, {
+            const summary = {
                 totalIncome: totalIncome.total,
                 totalExpense: totalExpense.total,
                 balance: balance
-            }, '獲取財務概覽成功');
+            };
+            
+            console.log('財務摘要:', summary);
+            
+            return BaseController.success(res, summary, '獲取財務概覽成功');
         } catch (error) {
             console.error('獲取財務概覽錯誤:', error);
             return BaseController.error(res, '獲取財務概覽失敗', 500);

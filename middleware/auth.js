@@ -166,7 +166,7 @@ const hasPermission = (permission) => {
 };
 
 // 記錄操作日誌
-const logActivity = (action, module) => {
+const logActivity = (action, module = 'system') => {
     return async (req, res, next) => {
         try {
             const userId = req.session?.user?.id || null;
@@ -174,10 +174,23 @@ const logActivity = (action, module) => {
             const ip = req.ip || req.connection.remoteAddress;
             const userAgent = req.get('User-Agent') || '';
             
-            await DatabaseHelper.run(
-                'INSERT INTO activity_logs (user_id, username, action, module, ip_address, user_agent, created_at) VALUES (?, ?, ?, ?, ?, ?, datetime("now"))',
-                [userId, username, action, module, ip, userAgent]
-            );
+            // 檢查表是否存在，嘗試記錄到 system_logs
+            try {
+                await DatabaseHelper.run(
+                    'INSERT INTO system_logs (user_id, action, description, ip_address, user_agent) VALUES (?, ?, ?, ?, ?)',
+                    [userId, action, `Module: ${module}`, ip, userAgent]
+                );
+            } catch (dbError) {
+                console.log('記錄日誌失敗，嘗試 activity_logs 表:', dbError.message);
+                try {
+                    await DatabaseHelper.run(
+                        'INSERT INTO activity_logs (user_id, username, action, module, ip_address, user_agent) VALUES (?, ?, ?, ?, ?, ?)',
+                        [userId, username, action, module, ip, userAgent]
+                    );
+                } catch (dbError2) {
+                    console.log('記錄活動日誌也失敗:', dbError2.message);
+                }
+            }
         } catch (error) {
             console.error('記錄活動日誌錯誤:', error);
         }
@@ -187,18 +200,18 @@ const logActivity = (action, module) => {
 };
 
 // 防止重複提交
-const preventDuplicateSubmission = (identifier) => {
-    const submissionCache = new Map();
-    
+const submissionCache = new Map();
+
+const preventDuplicateSubmission = (identifier = 'default') => {
     return (req, res, next) => {
         const userId = req.session?.user?.id || 'anonymous';
-        const key = `${userId}_${identifier}`;
+        const key = `${userId}_${identifier}_${req.method}_${req.path}`;
         const now = Date.now();
         
-        // 檢查是否在5秒內重複提交
+        // 檢查是否在3秒內重複提交
         if (submissionCache.has(key)) {
             const lastSubmission = submissionCache.get(key);
-            if (now - lastSubmission < 5000) {
+            if (now - lastSubmission < 3000) {
                 return res.status(429).json({
                     success: false,
                     message: '請勿重複提交，請稍後再試',
@@ -212,7 +225,7 @@ const preventDuplicateSubmission = (identifier) => {
         // 清理過期的緩存項目
         setTimeout(() => {
             submissionCache.delete(key);
-        }, 5000);
+        }, 3000);
         
         next();
     };
@@ -333,7 +346,14 @@ const requireAdmin = [isAuthenticated, isUserActive, isAdmin];
 // 需要特定角色的中間件
 const requireRole = (roles) => {
     return (req, res, next) => {
+        console.log('=== requireRole 中間件檢查 ===');
+        console.log('要求的角色:', roles);
+        console.log('Session 存在:', !!req.session);
+        console.log('User 存在:', !!req.session?.user);
+        console.log('用戶角色:', req.session?.user?.role);
+        
         if (!req.session || !req.session.user) {
+            console.log('❌ 未登入，拒絕存取');
             return res.status(401).json({
                 success: false,
                 message: '請先登入',
@@ -343,13 +363,15 @@ const requireRole = (roles) => {
         
         const userRole = req.session.user.role;
         if (!roles.includes(userRole)) {
+            console.log('❌ 權限不足，拒絕存取');
             return res.status(403).json({
                 success: false,
-                message: '權限不足',
+                message: `權限不足，需要以下角色之一: ${roles.join(', ')}，您的角色: ${userRole}`,
                 code: 'FORBIDDEN'
             });
         }
         
+        console.log('✅ 權限檢查通過');
         next();
     };
 };

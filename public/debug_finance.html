@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>財務上傳調試</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }
+        .debug-container { max-width: 1200px; margin: 0 auto; }
+        .debug-section { background: white; margin: 15px 0; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .status-indicator { display: inline-block; width: 12px; height: 12px; border-radius: 50%; margin-right: 8px; }
+        .status-success { background: #28a745; }
+        .status-error { background: #dc3545; }
+        .status-warning { background: #ffc107; }
+        .status-pending { background: #6c757d; }
+        .log-entry { margin: 5px 0; padding: 8px; border-left: 3px solid #ddd; background: #f8f9fa; }
+        .log-success { border-color: #28a745; }
+        .log-error { border-color: #dc3545; color: #721c24; }
+        .log-warning { border-color: #ffc107; }
+        .log-info { border-color: #17a2b8; }
+        pre { background: #f1f1f1; padding: 10px; border-radius: 4px; overflow-x: auto; font-size: 12px; }
+        button { padding: 8px 16px; margin: 5px; border: none; border-radius: 4px; cursor: pointer; }
+        .btn-primary { background: #007bff; color: white; }
+        .btn-success { background: #28a745; color: white; }
+        .btn-danger { background: #dc3545; color: white; }
+        .btn-warning { background: #ffc107; color: black; }
+        #realTimeLog { max-height: 400px; overflow-y: auto; border: 1px solid #ddd; padding: 10px; background: #fff; }
+        .test-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
+    </style>
+</head>
+<body>
+    <div class="debug-container">
+        <h1>🔧 財務上傳問題調試工具</h1>
+        
+        <div class="debug-section">
+            <h2>📊 系統狀態檢查</h2>
+            <div class="test-grid">
+                <div>
+                    <h4><span class="status-indicator status-pending" id="server-status"></span>服務器連接</h4>
+                    <p id="server-info">檢查中...</p>
+                </div>
+                <div>
+                    <h4><span class="status-indicator status-pending" id="auth-status"></span>用戶認證</h4>
+                    <p id="auth-info">檢查中...</p>
+                </div>
+                <div>
+                    <h4><span class="status-indicator status-pending" id="api-status"></span>API端點</h4>
+                    <p id="api-info">檢查中...</p>
+                </div>
+                <div>
+                    <h4><span class="status-indicator status-pending" id="permissions-status"></span>權限檢查</h4>
+                    <p id="permissions-info">檢查中...</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="debug-section">
+            <h2>🧪 快速測試</h2>
+            <button class="btn-primary" onclick="runAllTests()">🔄 運行所有測試</button>
+            <button class="btn-success" onclick="testSimpleSubmit()">📤 測試簡單提交</button>
+            <button class="btn-warning" onclick="testFileUpload()">📎 測試檔案上傳</button>
+            <button class="btn-danger" onclick="clearLogs()">🗑️ 清除日誌</button>
+        </div>
+
+        <div class="debug-section">
+            <h2>📝 即時日誌</h2>
+            <div id="realTimeLog"></div>
+        </div>
+
+        <div class="debug-section">
+            <h2>🔍 詳細診斷</h2>
+            <div id="diagnosticResults"></div>
+        </div>
+    </div>
+
+    <script>
+        let logContainer;
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            logContainer = document.getElementById('realTimeLog');
+            log('info', '🚀 調試工具初始化完成');
+            runInitialChecks();
+        });
+
+        function log(type, message, data = null) {
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = document.createElement('div');
+            logEntry.className = `log-entry log-${type}`;
+            logEntry.innerHTML = `<strong>[${timestamp}]</strong> ${message}`;
+            
+            if (data) {
+                const pre = document.createElement('pre');
+                pre.textContent = typeof data === 'string' ? data : JSON.stringify(data, null, 2);
+                logEntry.appendChild(pre);
+            }
+            
+            logContainer.appendChild(logEntry);
+            logContainer.scrollTop = logContainer.scrollHeight;
+        }
+
+        function updateStatus(element, status, message) {
+            const indicator = document.getElementById(element + '-status');
+            const info = document.getElementById(element + '-info');
+            
+            indicator.className = `status-indicator status-${status}`;
+            info.textContent = message;
+        }
+
+        async function runInitialChecks() {
+            log('info', '🔍 開始初始系統檢查...');
+            
+            // 檢查服務器連接
+            try {
+                const response = await fetch('/health', { method: 'GET' });
+                if (response.ok) {
+                    updateStatus('server', 'success', '服務器正常運行');
+                    log('success', '✅ 服務器連接正常');
+                } else {
+                    updateStatus('server', 'error', `服務器響應異常: ${response.status}`);
+                    log('error', '❌ 服務器響應異常', { status: response.status });
+                }
+            } catch (error) {
+                updateStatus('server', 'error', '服務器連接失敗');
+                log('error', '❌ 服務器連接失敗', error.message);
+            }
+
+            // 檢查用戶認證
+            try {
+                const response = await fetch('/api/finance/summary', { 
+                    method: 'GET',
+                    credentials: 'include'
+                });
+                
+                if (response.status === 401) {
+                    updateStatus('auth', 'error', '用戶未登入');
+                    log('error', '❌ 用戶未登入 - 需要先登入系統');
+                } else if (response.ok) {
+                    const data = await response.json();
+                    updateStatus('auth', 'success', '用戶已登入');
+                    log('success', '✅ 用戶認證成功', { userLoggedIn: true });
+                } else {
+                    updateStatus('auth', 'warning', `認證異常: ${response.status}`);
+                    log('warning', '⚠️ 認證狀態異常', { status: response.status });
+                }
+            } catch (error) {
+                updateStatus('auth', 'error', '認證檢查失敗');
+                log('error', '❌ 認證檢查失敗', error.message);
+            }
+
+            // 檢查API端點
+            try {
+                const response = await fetch('/api/finance/records', {
+                    method: 'GET',
+                    credentials: 'include'
+                });
+                
+                if (response.ok) {
+                    updateStatus('api', 'success', 'API端點正常');
+                    log('success', '✅ API端點可訪問');
+                } else {
+                    updateStatus('api', 'warning', `API響應: ${response.status}`);
+                    log('warning', '⚠️ API端點響應異常', { status: response.status });
+                }
+            } catch (error) {
+                updateStatus('api', 'error', 'API連接失敗');
+                log('error', '❌ API端點連接失敗', error.message);
+            }
+
+            // 檢查權限
+            try {
+                const response = await fetch('/api/finance/records', {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ test: 'permission-check' })
+                });
+                
+                if (response.status === 401) {
+                    updateStatus('permissions', 'error', '未登入');
+                    log('error', '❌ 權限檢查：未登入');
+                } else if (response.status === 403) {
+                    updateStatus('permissions', 'error', '權限不足');
+                    log('error', '❌ 權限檢查：權限不足');
+                } else if (response.status === 400) {
+                    updateStatus('permissions', 'success', '權限正常（驗證錯誤）');
+                    log('success', '✅ 權限檢查：有權限訪問（資料驗證錯誤是正常的）');
+                } else {
+                    updateStatus('permissions', 'warning', `未知狀態: ${response.status}`);
+                    log('warning', '⚠️ 權限檢查：未知狀態', { status: response.status });
+                }
+            } catch (error) {
+                updateStatus('permissions', 'error', '權限檢查失敗');
+                log('error', '❌ 權限檢查失敗', error.message);
+            }
+        }
+
+        async function testSimpleSubmit() {
+            log('info', '🧪 開始測試簡單提交...');
+            
+            const testData = new FormData();
+            testData.append('type', 'income');
+            testData.append('amount', '100');
+            testData.append('date', new Date().toISOString().split('T')[0]);
+            testData.append('category', '測試分類');
+            testData.append('description', '調試測試記錄');
+            testData.append('notes', '這是一個調試測試');
+
+            try {
+                log('info', '📤 發送測試資料到服務器...');
+                
+                const response = await fetch('/api/finance/records', {
+                    method: 'POST',
+                    credentials: 'include',
+                    body: testData
+                });
+
+                log('info', `📥 收到響應，狀態碼: ${response.status}`);
+
+                if (response.ok) {
+                    const result = await response.json();
+                    log('success', '🎉 簡單提交測試成功！', result);
+                } else {
+                    const errorText = await response.text();
+                    log('error', '❌ 簡單提交測試失敗', {
+                        status: response.status,
+                        statusText: response.statusText,
+                        response: errorText
+                    });
+                }
+            } catch (error) {
+                log('error', '💥 簡單提交測試網路錯誤', {
+                    name: error.name,
+                    message: error.message,
+                    stack: error.stack
+                });
+            }
+        }
+
+        async function testFileUpload() {
+            log('info', '📎 開始測試檔案上傳...');
+            
+            // 創建一個測試檔案
+            const testFile = new File(['測試收據內容'], 'test-receipt.txt', {
+                type: 'text/plain'
+            });
+
+            const testData = new FormData();
+            testData.append('type', 'expense');
+            testData.append('amount', '50');
+            testData.append('date', new Date().toISOString().split('T')[0]);
+            testData.append('category', '測試支出');
+            testData.append('description', '包含檔案的測試記錄');
+            testData.append('receipt', testFile);
+
+            try {
+                log('info', '📤 發送包含檔案的測試資料...');
+                
+                const response = await fetch('/api/finance/records', {
+                    method: 'POST',
+                    credentials: 'include',
+                    body: testData
+                });
+
+                log('info', `📥 收到響應，狀態碼: ${response.status}`);
+
+                if (response.ok) {
+                    const result = await response.json();
+                    log('success', '🎉 檔案上傳測試成功！', result);
+                } else {
+                    const errorText = await response.text();
+                    log('error', '❌ 檔案上傳測試失敗', {
+                        status: response.status,
+                        response: errorText
+                    });
+                }
+            } catch (error) {
+                log('error', '💥 檔案上傳測試網路錯誤', error.message);
+            }
+        }
+
+        async function runAllTests() {
+            log('info', '🔄 運行所有測試...');
+            clearLogs();
+            await runInitialChecks();
+            await new Promise(resolve => setTimeout(resolve, 1000)); // 等待1秒
+            await testSimpleSubmit();
+            await new Promise(resolve => setTimeout(resolve, 1000)); // 等待1秒
+            await testFileUpload();
+            log('info', '✅ 所有測試完成');
+        }
+
+        function clearLogs() {
+            logContainer.innerHTML = '';
+            log('info', '🗑️ 日誌已清除');
+        }
+
+        // 監聽網路錯誤
+        window.addEventListener('error', function(event) {
+            log('error', '💥 全域錯誤捕獲', {
+                message: event.message,
+                filename: event.filename,
+                lineno: event.lineno
+            });
+        });
+
+        // 監聽未處理的Promise錯誤
+        window.addEventListener('unhandledrejection', function(event) {
+            log('error', '💥 未處理的Promise錯誤', {
+                reason: event.reason
+            });
+        });
+    </script>
+</body>
+</html> 

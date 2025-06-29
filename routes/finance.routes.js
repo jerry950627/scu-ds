@@ -18,14 +18,57 @@ router.get('/',
     FinanceController.getRecords
 );
 
-// 創建新財務記錄
+// 獲取財務記錄列表 (別名路由)
+router.get('/records', 
+    requireRole(['admin', 'finance', 'secretary', 'member']),
+    validatePagination,
+    validateDateRange,
+    FinanceController.getRecords
+);
+
+// 調試中間件
+const debugMiddleware = (name) => (req, res, next) => {
+    console.log(`=== ${name} 中間件 ===`);
+    console.log('📋 req.body:', req.body);
+    console.log('📎 req.file:', req.file ? {
+        fieldname: req.file.fieldname,
+        originalname: req.file.originalname,
+        mimetype: req.file.mimetype,
+        size: req.file.size
+    } : '無檔案');
+    console.log('🔗 Content-Type:', req.get('Content-Type'));
+    next();
+};
+
+// 創建新財務記錄 (主要路由)
+router.post('/records', 
+    debugMiddleware('開始'),
+    requireRole(['admin', 'finance', 'member']),
+    debugMiddleware('權限檢查後'),
+    singleUpload('DOCUMENT', 'receipt'),
+    debugMiddleware('文件上傳後'),
+    validateFinance,
+    debugMiddleware('驗證後'),
+    logActivity('創建財務記錄', 'finance'),
+    preventDuplicateSubmission('finance_record'),
+    FinanceController.createRecord
+);
+
+// 創建新財務記錄 (根路由 - 向後兼容)
 router.post('/', 
     requireRole(['admin', 'finance', 'member']),
     singleUpload('DOCUMENT', 'receipt'),
     validateFinance,
-    logActivity('創建財務記錄'),
-    preventDuplicateSubmission,
+    logActivity('創建財務記錄', 'finance'),
+    preventDuplicateSubmission('finance_record'),
     FinanceController.createRecord
+);
+
+// 獲取單個財務記錄詳情
+router.get('/:id', 
+    requireRole(['admin', 'finance', 'secretary', 'member']),
+    validateId,
+    FinanceController.getRecord
 );
 
 // 更新財務記錄
@@ -46,31 +89,6 @@ router.delete('/:id',
     FinanceController.deleteRecord
 );
 
-// 獲取財務記錄列表 (別名路由)
-router.get('/records', 
-    requireRole(['admin', 'finance', 'secretary', 'member']),
-    validatePagination,
-    validateDateRange,
-    FinanceController.getRecords
-);
-
-// 創建新財務記錄 (別名路由)
-router.post('/records', 
-    requireRole(['admin', 'finance', 'member']),
-    singleUpload('DOCUMENT', 'receipt'),
-    validateFinance,
-    logActivity('創建財務記錄'),
-    preventDuplicateSubmission,
-    FinanceController.createRecord
-);
-
-// 獲取單個財務記錄詳情
-router.get('/:id', 
-    requireRole(['admin', 'finance', 'secretary', 'member']),
-    validateId,
-    FinanceController.getRecord
-);
-
 // 批量導入財務記錄
 router.post('/import', 
     requireRole(['admin', 'finance']),
@@ -83,6 +101,13 @@ router.get('/export/excel',
     requireRole(['admin', 'finance', 'secretary']),
     validateDateRange,
     FinanceController.exportToExcel
+);
+
+// 導出財務記錄為CSV (使用PDF端點返回JSON數據)
+router.get('/export', 
+    requireRole(['admin', 'finance', 'secretary']),
+    validateDateRange,
+    FinanceController.exportToPDF
 );
 
 // 導出財務記錄為PDF

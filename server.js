@@ -5,6 +5,7 @@ const express = require('express');
 const path = require('path');
 const fs = require('fs').promises;
 const { initializeDatabase } = require('./database/db.js');
+const { UploadConfig } = require('./utils/uploadConfig');
 
 // 創建 Express 應用
 const app = express();
@@ -26,7 +27,7 @@ const config = {
         saveUninitialized: false,
         rolling: true,
         cookie: {
-            secure: NODE_ENV === 'production',
+            secure: false,
             httpOnly: true,
             maxAge: 24 * 60 * 60 * 1000, // 24 hours
             sameSite: 'lax'
@@ -76,6 +77,11 @@ async function initializeDirectories(basePath) {
 function setupMiddleware(app) {
     const bodyParser = require('body-parser');
     const session = require('express-session');
+    
+    // Favicon 處理 - 防止404錯誤
+    app.get('/favicon.ico', (req, res) => {
+        res.sendFile(path.join(__dirname, 'public/assets/images/ds.jpg'));
+    });
     
     // 基本中間件
     app.use(bodyParser.json());
