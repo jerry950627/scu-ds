@@ -40,17 +40,19 @@ const debugMiddleware = (name) => (req, res, next) => {
     next();
 };
 
+// 創建新財務記錄 (簡化版本 - 僅用於調試)
+router.post('/test', 
+    requireRole(['admin', 'finance', 'member']),
+    singleUpload('DOCUMENT', 'receipt'),
+    FinanceController.createRecord
+);
+
 // 創建新財務記錄 (主要路由)
 router.post('/records', 
-    debugMiddleware('開始'),
     requireRole(['admin', 'finance', 'member']),
-    debugMiddleware('權限檢查後'),
     singleUpload('DOCUMENT', 'receipt'),
-    debugMiddleware('文件上傳後'),
     validateFinance,
-    debugMiddleware('驗證後'),
     logActivity('創建財務記錄', 'finance'),
-    preventDuplicateSubmission('finance_record'),
     FinanceController.createRecord
 );
 
@@ -60,7 +62,6 @@ router.post('/',
     singleUpload('DOCUMENT', 'receipt'),
     validateFinance,
     logActivity('創建財務記錄', 'finance'),
-    preventDuplicateSubmission('finance_record'),
     FinanceController.createRecord
 );
 

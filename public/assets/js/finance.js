@@ -115,7 +115,7 @@ document.addEventListener('DOMContentLoaded', function() {
     async function loadFinanceSummary() {
         try {
             console.log('📊 開始載入財務摘要...');
-            const response = await fetch('/api/finance/summary', {
+            const response = await fetch('/api/finance/stats/overview', {
                 method: 'GET',
                 credentials: 'include',
                 headers: {
@@ -137,10 +137,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 const summary = data.data || data;
                 if (totalIncomeEl) {
-                    totalIncomeEl.textContent = `NT$ ${(summary.totalIncome || 0).toLocaleString()}`;
+                    totalIncomeEl.textContent = `NT$ ${(summary.totalIncome || summary.total_income || 0).toLocaleString()}`;
                 }
                 if (totalExpenseEl) {
-                    totalExpenseEl.textContent = `NT$ ${(summary.totalExpense || 0).toLocaleString()}`;
+                    totalExpenseEl.textContent = `NT$ ${(summary.totalExpense || summary.total_expense || 0).toLocaleString()}`;
                 }
                 
                 // 更新總餘額顯示
@@ -176,7 +176,7 @@ document.addEventListener('DOMContentLoaded', function() {
         try {
             console.log('📋 載入財務記錄，排序:', sortOrder);
             
-            const response = await fetch(`/api/finance?page=1&limit=50&sort=${sortOrder}`, {
+            const response = await fetch(`/api/finance/records?page=1&limit=50&sort=${sortOrder}`, {
                 method: 'GET',
                 credentials: 'include',
                 headers: {
@@ -659,7 +659,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 // 逐一提交每筆記錄
                 for (let i = 0; i < records.length; i++) {
                     const record = records[i];
-                    console.log(`📤 提交記錄 ${i + 1}/${records.length}:`, record);
+                    console.log(`🚀 發送記錄 ${i + 1} 到服務器...`);
                     
                     try {
                         const formData = new FormData();
@@ -680,21 +680,11 @@ document.addEventListener('DOMContentLoaded', function() {
                         
                         console.log(`🚀 發送記錄 ${i + 1} 到服務器...`);
                         
-                        // 移除超時控制，讓請求自然完成
-                        // const controller = new AbortController();
-                        // const timeoutId = setTimeout(() => {
-                        //     controller.abort();
-                        //     console.error(`⏰ 記錄 ${i + 1} 請求超時 (30秒)`);
-                        // }, 30000); // 30秒超時
-                        
                         const response = await fetch('/api/finance/records', {
                             method: 'POST',
                             credentials: 'include',
                             body: formData
-                            // signal: controller.signal  // 移除 signal
                         });
-                        
-                        // clearTimeout(timeoutId); // 移除清除計時器
                         
                         console.log(`📥 記錄 ${i + 1} 響應狀態:`, response.status);
                         
@@ -720,50 +710,14 @@ document.addEventListener('DOMContentLoaded', function() {
                         
                         let errorMessage = `網路錯誤: ${fetchError.message}`;
                         
-                        // 詳細錯誤分類
-                        if (fetchError.name === 'AbortError') {
-                            errorMessage = '請求被中止，這可能是由於瀏覽器擴展干擾造成的';
-                        } else if (fetchError.name === 'TypeError' && fetchError.message.includes('Failed to fetch')) {
-                            errorMessage = '網路請求失敗，可能的原因：\n1. 瀏覽器擴展干擾\n2. 網路連接問題\n3. 伺服器未啟動\n\n建議：請嘗試無痕瀏覽模式或停用所有擴展';
-                        } else if (fetchError.name === 'SyntaxError') {
-                            errorMessage = '伺服器響應格式錯誤';
-                        } else if (fetchError.message && fetchError.message.includes('NetworkError')) {
-                            errorMessage = '網路連接錯誤，請檢查網路狀態';
-                        }
-                        
-                        // 檢測可能的瀏覽器擴展干擾
-                        if (fetchError.stack && fetchError.stack.includes('content_script')) {
-                            errorMessage = '⚠️ 檢測到瀏覽器擴展干擾！\n\n解決方案：\n1. 嘗試無痕瀏覽模式\n2. 暫時停用所有瀏覽器擴展\n3. 使用簡化測試頁面：/test_finance_simple.html';
-                        }
-                        
-                        // 如果是網路錯誤，嘗試簡單的連接測試
-                        if (fetchError.name === 'TypeError' || fetchError.name === 'NetworkError') {
-                            try {
-                                const testResponse = await fetch('/api/health', { 
-                                    method: 'GET',
-                                    cache: 'no-cache',
-                                    credentials: 'same-origin'
-                                });
-                                if (!testResponse.ok) {
-                                    errorMessage += '\n\n伺服器健康檢查失敗，請聯繫管理員';
-                                } else {
-                                    errorMessage += '\n\n伺服器運行正常，問題可能出在瀏覽器擴展干擾';
-                                }
-                            } catch (testError) {
-                                errorMessage += '\n\n無法連接伺服器，請檢查伺服器是否正在運行';
-                            }
+                        if (fetchError.name === 'TypeError' && fetchError.message.includes('Failed to fetch')) {
+                            errorMessage = '網路請求失敗，請檢查網路連接或伺服器狀態';
                         }
                         
                         results.push({ 
                             index: i + 1, 
                             success: false, 
-                            error: errorMessage,
-                            details: {
-                                name: fetchError.name,
-                                message: fetchError.message,
-                                stack: fetchError.stack,
-                                isExtensionInterference: fetchError.stack && fetchError.stack.includes('content_script')
-                            }
+                            error: errorMessage
                         });
                         failCount++;
                     }
@@ -853,9 +807,10 @@ document.addEventListener('DOMContentLoaded', function() {
     // 頁面專用：更新統計數據的函數
     window.updateFinanceStats = async function() {
         try {
-            const response = await fetch('/api/finance/summary');
+            const response = await fetch('/api/finance/stats/overview');
             if (response.ok) {
-                const summary = await response.json();
+                const data = await response.json();
+                const summary = data.data || data;
                 
                 // 更新統計卡片
                 const totalUsersEl = document.getElementById('totalUsers');
@@ -863,7 +818,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 const totalBalanceEl = document.getElementById('totalBalance');
                 
                 if (totalBalanceEl) {
-                    totalBalanceEl.textContent = `NT$ ${summary.balance.toFixed(0)}`;
+                    const balance = summary.balance || 0;
+                    totalBalanceEl.textContent = `NT$ ${balance.toFixed(0)}`;
                 }
                 
                 // 如果在儀表板頁面，可以設置其他統計數據
@@ -891,7 +847,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // 將必要的函數暴露到全域範圍
     window.viewFinanceRecord = async function(recordId) {
         try {
-            const response = await fetch(`/api/finance/${recordId}`);
+            const response = await fetch(`/api/finance/records/${recordId}`);
             if (!response.ok) throw new Error('無法獲取財務記錄詳情');
             const data = await response.json();
             const record = data.data || data;
@@ -921,7 +877,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     window.editFinanceRecord = async function(recordId) {
         try {
-            const response = await fetch(`/api/finance/${recordId}`);
+            const response = await fetch(`/api/finance/records/${recordId}`);
             if (!response.ok) throw new Error('無法獲取財務記錄以編輯');
             const data = await response.json();
             const record = data.data || data;
@@ -944,7 +900,7 @@ document.addEventListener('DOMContentLoaded', function() {
     window.deleteFinanceRecord = async function(recordId) {
         if (window.confirm('確定要刪除此財務記錄嗎？')) {
             try {
-                const response = await fetch(`/api/finance/${recordId}`, { method: 'DELETE' });
+                const response = await fetch(`/api/finance/records/${recordId}`, { method: 'DELETE' });
                 if (response.ok) {
                     showMessage('success', '<i class="fas fa-check-circle me-2"></i>財務記錄已刪除');
                     loadFinanceRecords(sortSelect ? sortSelect.value : 'desc');
@@ -956,6 +912,134 @@ document.addEventListener('DOMContentLoaded', function() {
                 console.error('刪除財務記錄失敗:', error);
                 showMessage('error', '<i class="fas fa-exclamation-triangle me-2"></i>刪除財務記錄失敗: ' + error.message);
             }
+        }
+    };
+
+    // 重置全部記錄
+    window.clearAllRecords = function() {
+        if (confirm('確定要重置所有記錄嗎？這將清除所有未保存的資料。')) {
+            console.log('🔄 重置所有記錄...');
+            
+            // 重置表單
+            if (addFinanceRecordForm) {
+                addFinanceRecordForm.reset();
+            }
+            
+            // 移除多餘的記錄項目，只保留第一個
+            const recordItems = financeRecordsContainer.querySelectorAll('.finance-record-item');
+            recordItems.forEach((item, index) => {
+                if (index > 0) {
+                    item.remove();
+                }
+            });
+            
+            // 重置第一個記錄項目
+            const firstRecordItem = financeRecordsContainer.querySelector('.finance-record-item');
+            if (firstRecordItem) {
+                // 清空所有輸入欄位
+                firstRecordItem.querySelectorAll('input, select, textarea').forEach(field => {
+                    field.value = '';
+                });
+                
+                // 設定今天的日期
+                const dateInput = firstRecordItem.querySelector('.record-date');
+                if (dateInput) {
+                    dateInput.value = new Date().toISOString().split('T')[0];
+                }
+                
+                // 更新標題
+                const title = firstRecordItem.querySelector('h6');
+                if (title) {
+                    title.innerHTML = '<i class="fas fa-file-invoice-dollar me-2"></i>記錄 #1';
+                }
+                
+                // 隱藏刪除按鈕
+                const removeBtn = firstRecordItem.querySelector('.remove-record-btn');
+                if (removeBtn) {
+                    removeBtn.style.display = 'none';
+                }
+            }
+            
+            // 重置記錄索引
+            recordIndex = 0;
+            
+            showMessage('success', '所有記錄已重置');
+            console.log('✅ 重置完成');
+        }
+    };
+
+    // 清除單筆記錄
+    window.clearSingleRecord = function(recordElement) {
+        if (confirm('確定要清除此記錄嗎？')) {
+            // 清空該記錄的所有輸入欄位
+            recordElement.querySelectorAll('input, select, textarea').forEach(field => {
+                field.value = '';
+            });
+            
+            // 如果是日期欄位，設定為今天
+            const dateInput = recordElement.querySelector('.record-date');
+            if (dateInput) {
+                dateInput.value = new Date().toISOString().split('T')[0];
+            }
+            
+            showMessage('info', '記錄已清除');
+        }
+    };
+
+    // 測試提交功能
+    window.testSubmit = async function() {
+        console.log('🧪 開始測試提交...');
+        
+        const firstRecordItem = financeRecordsContainer.querySelector('.finance-record-item');
+        if (!firstRecordItem) {
+            showMessage('error', '找不到記錄項目');
+            return;
+        }
+        
+        const type = firstRecordItem.querySelector('.record-type')?.value?.trim();
+        const amount = firstRecordItem.querySelector('.record-amount')?.value?.trim();
+        const date = firstRecordItem.querySelector('.record-date')?.value?.trim();
+        const description = firstRecordItem.querySelector('.record-description')?.value?.trim() || '測試記錄';
+        
+        if (!type || !amount || !date) {
+            showMessage('error', '請填寫第一筆記錄的基本資訊（類型、金額、日期）');
+            return;
+        }
+        
+        try {
+            showMessage('info', '🧪 正在測試提交...');
+            
+            const formData = new FormData();
+            formData.append('type', type);
+            formData.append('amount', amount);
+            formData.append('date', date);
+            formData.append('description', description);
+            formData.append('category', '測試分類');
+            formData.append('notes', '這是測試提交');
+            
+            console.log('🚀 發送測試請求到 /api/finance/test');
+            
+            const response = await fetch('/api/finance/test', {
+                method: 'POST',
+                credentials: 'include',
+                body: formData
+            });
+            
+            console.log('📥 測試響應狀態:', response.status);
+            
+            if (response.ok) {
+                const result = await response.json();
+                console.log('✅ 測試提交成功:', result);
+                showMessage('success', '🎉 測試提交成功！API 連接正常');
+                loadFinanceRecords();
+            } else {
+                const errorData = await response.json().catch(() => ({ error: '未知錯誤' }));
+                console.error('❌ 測試提交失敗:', errorData);
+                showMessage('error', `測試提交失敗: ${errorData.error || '請檢查控制台錯誤訊息'}`);
+            }
+        } catch (error) {
+            console.error('💥 測試請求失敗:', error);
+            showMessage('error', `測試請求失敗: ${error.message}`);
         }
     };
 });

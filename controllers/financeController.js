@@ -141,55 +141,36 @@ class FinanceController extends BaseController {
         console.log('📍 請求時間:', new Date().toISOString());
         console.log('📍 請求方法:', req.method);
         console.log('📍 請求路徑:', req.path);
-        console.log('📍 請求URL:', req.url);
-        console.log('📍 請求完整URL:', req.protocol + '://' + req.get('host') + req.originalUrl);
-        console.log('📍 Content-Type:', req.get('Content-Type'));
-        console.log('📍 來源IP:', req.ip || req.connection.remoteAddress);
-        console.log('📍 請求頭:', req.headers);
-        
-        // 設定回應超時
-        res.setTimeout(60000, () => {
-            console.error('❌ 請求處理超時 (60秒)');
-            if (!res.headersSent) {
-                return BaseController.error(res, '請求處理超時，請稍後再試', 504);
-            }
-        });
         
         // Session 狀態檢查
-        console.log('🔐 Session 狀態檢查:');
-        console.log('  - Session 存在:', !!req.session);
-        console.log('  - 用戶登入狀態:', req.session?.user ? '已登入' : '未登入');
-        
-        if (req.session?.user) {
-            console.log('👤 用戶資訊:');
-            console.log('  - 用戶ID:', req.session.user.id);
-            console.log('  - 用戶名:', req.session.user.username);
-            console.log('  - 用戶角色:', req.session.user.role);
-        } else {
-            console.error('❌ 用戶未登入或Session失效');
+        if (!req.session?.user) {
+            console.error('❌ 用戶未登入');
             return BaseController.error(res, '請先登入', 401);
         }
         
+        console.log('👤 用戶資訊:', {
+            id: req.session.user.id,
+            username: req.session.user.username,
+            role: req.session.user.role
+        });
+        
         // 請求資料檢查
-        console.log('📋 請求資料檢查:');
-        console.log('  - req.body:', req.body);
-        console.log('  - req.body keys:', Object.keys(req.body));
+        console.log('📋 請求資料:', {
+            body: req.body,
+            hasFile: !!req.file
+        });
         
         // 檔案上傳檢查
-        console.log('📎 檔案上傳檢查:');
         if (req.file) {
-            console.log('  - 檔案已上傳:', {
+            console.log('📎 檔案已上傳:', {
                 filename: req.file.filename,
                 originalname: req.file.originalname,
                 mimetype: req.file.mimetype,
-                size: req.file.size,
-                path: req.file.path
+                size: req.file.size
             });
-        } else {
-            console.log('  - 無檔案上傳');
         }
         
-        // 提取表單資料 - 確保正確處理FormData
+        // 提取表單資料
         const type = req.body.type?.trim();
         const amount = req.body.amount;
         const date = req.body.date?.trim();
@@ -198,43 +179,26 @@ class FinanceController extends BaseController {
         const notes = req.body.notes?.trim() || '';
         const userId = req.session.user.id;
 
-        console.log('📝 解析後的欄位:');
-        console.log('  - type:', `"${type}"`);
-        console.log('  - amount:', `"${amount}"`);
-        console.log('  - date:', `"${date}"`);
-        console.log('  - category:', `"${category}"`);
-        console.log('  - description:', `"${description}"`);
-        console.log('  - notes:', `"${notes}"`);
-        console.log('  - userId:', userId);
+        console.log('📝 解析後的欄位:', {
+            type, amount, date, category, description, notes, userId
+        });
 
         // 驗證必填欄位
-        console.log('🔍 開始驗證必填欄位...');
-        
-        if (!type) {
-            console.error('❌ 類型欄位為空');
-            return BaseController.error(res, '類型為必填欄位', 400);
-        }
-        
-        if (!amount) {
-            console.error('❌ 金額欄位為空');
-            return BaseController.error(res, '金額為必填欄位', 400);
-        }
-        
-        if (!date) {
-            console.error('❌ 日期欄位為空');
-            return BaseController.error(res, '日期為必填欄位', 400);
+        if (!type || !amount || !date) {
+            console.error('❌ 必填欄位缺失');
+            return BaseController.error(res, '類型、金額和日期為必填欄位', 400);
         }
 
         // 驗證類型值
         if (!['income', 'expense'].includes(type)) {
             console.error('❌ 無效的記錄類型:', type);
-            return BaseController.error(res, '無效的記錄類型，必須是 income 或 expense', 400);
+            return BaseController.error(res, '無效的記錄類型', 400);
         }
 
         // 驗證並轉換金額
         const numAmount = parseFloat(amount);
         if (isNaN(numAmount) || numAmount <= 0) {
-            console.error('❌ 無效的金額:', amount, '-> parsed:', numAmount);
+            console.error('❌ 無效的金額:', amount);
             return BaseController.error(res, '金額必須是大於0的數字', 400);
         }
 
@@ -242,14 +206,7 @@ class FinanceController extends BaseController {
         const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
         if (!dateRegex.test(date)) {
             console.error('❌ 無效的日期格式:', date);
-            return BaseController.error(res, '日期格式不正確，請使用 YYYY-MM-DD 格式', 400);
-        }
-
-        // 驗證日期是否有效
-        const dateObj = new Date(date);
-        if (isNaN(dateObj.getTime())) {
-            console.error('❌ 無效的日期:', date);
-            return BaseController.error(res, '無效的日期', 400);
+            return BaseController.error(res, '日期格式不正確', 400);
         }
 
         console.log('✅ 所有驗證通過');
@@ -263,18 +220,6 @@ class FinanceController extends BaseController {
             }
             
             console.log('💾 準備插入資料庫...');
-            console.log('插入參數:', {
-                title: description || '財務記錄',
-                description: description,
-                amount: numAmount,
-                type: type,
-                category: category,
-                date: date,
-                notes: notes,
-                receipt_url: receiptUrl,
-                created_by: userId
-            });
-
             const result = await DatabaseHelper.run(`
                 INSERT INTO finance_records (
                     title, 
@@ -300,9 +245,7 @@ class FinanceController extends BaseController {
                 userId
             ]);
 
-            console.log('✅ 資料庫插入成功');
-            console.log('📊 插入結果:', result);
-            console.log('🆔 新記錄ID:', result.lastID);
+            console.log('✅ 資料庫插入成功，記錄ID:', result.lastID);
 
             // 記錄操作日誌
             try {
@@ -312,7 +255,6 @@ class FinanceController extends BaseController {
                     amount: numAmount,
                     hasReceipt: !!receiptUrl
                 });
-                console.log('📝 系統日誌記錄成功');
             } catch (logError) {
                 console.warn('⚠️ 記錄日誌失敗:', logError.message);
             }
@@ -331,26 +273,21 @@ class FinanceController extends BaseController {
                 created_at: new Date().toISOString()
             };
             
-            console.log('📤 準備回傳響應:', responseData);
             console.log('=== 創建財務記錄完成 ✅ ===');
-
             return BaseController.success(res, responseData, '財務記錄創建成功', 201);
 
         } catch (error) {
             console.error('=== 創建財務記錄發生錯誤 ❌ ===');
-            console.error('❌ 錯誤類型:', error.constructor.name);
-            console.error('❌ 錯誤訊息:', error.message);
-            console.error('❌ 錯誤堆疊:', error.stack);
+            console.error('錯誤訊息:', error.message);
+            console.error('錯誤堆疊:', error.stack);
             
             // 記錄錯誤日誌
             try {
                 await BaseController.logAction(req, 'FINANCE_RECORD_CREATE_ERROR', `創建財務記錄失敗: ${error.message}`);
-                console.log('📝 錯誤日誌記錄成功');
             } catch (logError) {
                 console.warn('⚠️ 記錄錯誤日誌失敗:', logError.message);
             }
             
-            console.log('=== 準備回傳錯誤響應 ===');
             return BaseController.error(res, `創建財務記錄失敗: ${error.message}`, 500);
         }
     });
